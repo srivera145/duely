@@ -5,10 +5,13 @@ use Keel\App\Controllers\ActivityController;
 use Keel\App\Controllers\ApiFileController;
 use Keel\App\Controllers\ApiTokenController;
 use Keel\App\Controllers\BillingController;
+use Keel\App\Controllers\ClientController;
 use Keel\App\Controllers\DashboardController;
 use Keel\App\Controllers\DocsController;
 use Keel\App\Controllers\FileController;
 use Keel\App\Controllers\HealthController;
+use Keel\App\Controllers\ImportController;
+use Keel\App\Controllers\InvoiceController;
 use Keel\App\Controllers\LlmsTxtController;
 use Keel\App\Controllers\ManifestController;
 use Keel\App\Controllers\OrganizationController;
@@ -93,6 +96,31 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->post('/billing/portal', [BillingController::class, 'portal']);
             $router->post('/files', [FileController::class, 'store']);
             $router->get('/files/{id}', [FileController::class, 'show']);
+
+            // Duely: clients, invoices, and the CSV import wizard.
+            $router->get('/clients', [ClientController::class, 'index']);
+            $router->get('/clients/new', [ClientController::class, 'create']);
+            $router->get('/clients/{id}', [ClientController::class, 'edit']);
+            $router->get('/api/clients', [ClientController::class, 'listJson']);
+            $router->post('/api/clients', [ClientController::class, 'store']);
+            $router->post('/api/clients/{id}/archive', [ClientController::class, 'archive']);
+            $router->post('/api/clients/{id}/delete', [ClientController::class, 'destroy']);
+
+            $router->get('/invoices', [InvoiceController::class, 'index']);
+            $router->get('/invoices/new', [InvoiceController::class, 'create']);
+            $router->get('/invoices/import', [ImportController::class, 'show']);
+            $router->get('/invoices/{id}', [InvoiceController::class, 'edit']);
+            $router->get('/api/invoices', [InvoiceController::class, 'listJson']);
+            $router->post('/api/invoices', [InvoiceController::class, 'store']);
+            $router->post('/api/invoices/{id}/status', [InvoiceController::class, 'updateStatus']);
+            $router->post('/api/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
+
+            // Upload and validate are read-only; only commit writes.
+            $router->post('/api/invoices/import/upload', [ImportController::class, 'upload']);
+            $router->post('/api/invoices/import/validate', [ImportController::class, 'validate']);
+            $router->post('/api/invoices/import/commit', [ImportController::class, 'commit']);
+            $router->post('/api/invoices/import/cancel', [ImportController::class, 'cancel']);
+            $router->post('/api/invoices/import/errors.csv', [ImportController::class, 'downloadErrors']);
 
             // Duely: the mailbox reminders are sent from and replies are read out of.
             $router->get('/settings/email', [SettingsController::class, 'email']);

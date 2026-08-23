@@ -1,6 +1,8 @@
 import '../css/app.css';
 import { initEmailAccount } from './components/email-account';
+import { initImportWizard } from './components/import-wizard';
 import { initModal } from './components/modal';
+import { initRecords } from './components/records';
 import { initTabs } from './components/tabs';
 import { initThemeToggle } from './components/theme-toggle';
 
@@ -120,6 +122,8 @@ const initSharedUi = () => {
 	initModal();
 	mountCopyButtons();
 	initEmailAccount();
+	initImportWizard();
+	initRecords();
 };
 
 if (document.readyState === 'loading') {

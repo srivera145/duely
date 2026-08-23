@@ -94,6 +94,206 @@ class Invoice extends BaseModel
     }
 
     /**
+     * Sort keys the invoice list accepts, mapped to their ORDER BY clauses.
+     *
+     * The list is the only place a caller chooses ordering, and the choice
+     * arrives from a query string — so it is resolved through this allowlist
+     * rather than being placed into SQL.
+     */
+    private const SORTS = [
+        'days_overdue' => 'days_overdue DESC, i.due_date ASC',
+        'days_overdue_asc' => 'days_overdue ASC, i.due_date DESC',
+        'due_date' => 'i.due_date ASC',
+        'due_date_desc' => 'i.due_date DESC',
+        'amount' => 'i.amount_cents DESC',
+        'amount_asc' => 'i.amount_cents ASC',
+        'number' => 'i.number ASC',
+        'client' => 'c.name ASC, i.due_date ASC',
+        'newest' => 'i.created_at DESC',
+    ];
+
+    public const DEFAULT_SORT = 'days_overdue';
+
+    /**
+     * The invoice list: each invoice with its client, its days overdue, and the
+     * status of any chase running against it.
+     *
+     * @param array{status?:string, client_id?:int|null, search?:string, sort?:string} $filters
+     */
+    public static function listWithContext(
+        int $tenantId,
+        array $filters = [],
+        int $limit = 100,
+        int $offset = 0
+    ): array {
+        $status = (string) ($filters['status'] ?? 'all');
+        $clientId = $filters['client_id'] ?? null;
+        $search = trim((string) ($filters['search'] ?? ''));
+        $sort = (string) ($filters['sort'] ?? self::DEFAULT_SORT);
+
+        // The application clock is the only clock. MySQL's CURDATE() can sit in
+        // a different timezone to PHP, which would make the list disagree with
+        // the scheduler about how overdue an invoice is — and send the wrong
+        // rung of the sequence a day early.
+        $today = self::today($filters['as_of'] ?? null);
+
+        $bindings = [$tenantId];
+        $where = 'i.tenant_id = ?';
+
+        // "overdue" is a view over open invoices, not a stored status.
+        if ($status === 'overdue') {
+            $where .= ' AND i.status = ? AND i.due_date < ?';
+            $bindings[] = self::STATUS_OPEN;
+            $bindings[] = $today;
+        } elseif (in_array($status, [self::STATUS_OPEN, self::STATUS_PAID, self::STATUS_VOID], true)) {
+            $where .= ' AND i.status = ?';
+            $bindings[] = $status;
+        }
+
+        if ($clientId !== null && (int) $clientId > 0) {
+            $where .= ' AND i.client_id = ?';
+            $bindings[] = (int) $clientId;
+        }
+
+        if ($search !== '') {
+            $needle = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
+            $where .= ' AND (i.number LIKE ? OR c.name LIKE ? OR c.email LIKE ? OR c.company LIKE ?)';
+            array_push($bindings, $needle, $needle, $needle, $needle);
+        }
+
+        $orderBy = self::SORTS[$sort] ?? self::SORTS[self::DEFAULT_SORT];
+
+        $sql = 'SELECT i.*,
+                       c.name AS client_name,
+                       c.email AS client_email,
+                       c.company AS client_company,
+                       DATEDIFF(?, i.due_date) AS days_overdue,
+                       ch.id AS chase_id,
+                       ch.status AS chase_status,
+                       ch.paused_reason AS chase_paused_reason,
+                       ch.next_send_at AS chase_next_send_at,
+                       ch.current_position AS chase_position
+                FROM invoices i
+                INNER JOIN clients c
+                        ON c.id = i.client_id
+                       AND c.tenant_id = i.tenant_id
+                LEFT JOIN chases ch
+                       ON ch.invoice_id = i.id
+                      AND ch.tenant_id = i.tenant_id
+                WHERE ' . $where . '
+                ORDER BY ' . $orderBy . ', i.id DESC
+                LIMIT ? OFFSET ?';
+
+        // The DATEDIFF placeholder sits in the SELECT list, ahead of every
+        // WHERE binding, so it goes to the front of the positional list.
+        array_unshift($bindings, $today);
+
+        return static::runPaged($sql, $bindings, $limit, $offset)->fetchAll();
+    }
+
+    /**
+     * Row count for the same filters, so the list can paginate.
+     *
+     * @param array{status?:string, client_id?:int|null, search?:string} $filters
+     */
+    public static function countWithFilters(int $tenantId, array $filters = []): int
+    {
+        $status = (string) ($filters['status'] ?? 'all');
+        $clientId = $filters['client_id'] ?? null;
+        $search = trim((string) ($filters['search'] ?? ''));
+
+        $today = self::today($filters['as_of'] ?? null);
+
+        $bindings = [$tenantId];
+        $where = 'i.tenant_id = ?';
+
+        if ($status === 'overdue') {
+            $where .= ' AND i.status = ? AND i.due_date < ?';
+            $bindings[] = self::STATUS_OPEN;
+            $bindings[] = $today;
+        } elseif (in_array($status, [self::STATUS_OPEN, self::STATUS_PAID, self::STATUS_VOID], true)) {
+            $where .= ' AND i.status = ?';
+            $bindings[] = $status;
+        }
+
+        if ($clientId !== null && (int) $clientId > 0) {
+            $where .= ' AND i.client_id = ?';
+            $bindings[] = (int) $clientId;
+        }
+
+        if ($search !== '') {
+            $needle = '%' . str_replace(['%', '_'], ['\%', '\_'], $search) . '%';
+            $where .= ' AND (i.number LIKE ? OR c.name LIKE ? OR c.email LIKE ? OR c.company LIKE ?)';
+            array_push($bindings, $needle, $needle, $needle, $needle);
+        }
+
+        $sql = 'SELECT COUNT(*)
+                FROM invoices i
+                INNER JOIN clients c
+                        ON c.id = i.client_id
+                       AND c.tenant_id = i.tenant_id
+                WHERE ' . $where;
+
+        return (int) static::run($sql, $bindings)->fetchColumn();
+    }
+
+    /**
+     * Counts for the status filter tabs.
+     *
+     * @return array{all:int, open:int, overdue:int, paid:int, void:int}
+     */
+    public static function statusTallies(int $tenantId, ?DateTimeImmutable $asOf = null): array
+    {
+        $sql = 'SELECT
+                    COUNT(*) AS all_count,
+                    SUM(status = ?) AS open_count,
+                    SUM(status = ? AND due_date < ?) AS overdue_count,
+                    SUM(status = ?) AS paid_count,
+                    SUM(status = ?) AS void_count
+                FROM invoices
+                WHERE tenant_id = ?';
+
+        $row = static::run($sql, [
+            self::STATUS_OPEN,
+            self::STATUS_OPEN,
+            self::today($asOf),
+            self::STATUS_PAID,
+            self::STATUS_VOID,
+            $tenantId,
+        ])->fetch() ?: [];
+
+        return [
+            'all' => (int) ($row['all_count'] ?? 0),
+            'open' => (int) ($row['open_count'] ?? 0),
+            'overdue' => (int) ($row['overdue_count'] ?? 0),
+            'paid' => (int) ($row['paid_count'] ?? 0),
+            'void' => (int) ($row['void_count'] ?? 0),
+        ];
+    }
+
+    /**
+     * @return string[] the sort keys the list accepts
+     */
+    public static function sortKeys(): array
+    {
+        return array_keys(self::SORTS);
+    }
+
+    /**
+     * The application's idea of today, as a Y-m-d string for binding.
+     *
+     * Every overdue calculation — the list, the tallies, and daysOverdue() —
+     * routes through this, so PHP is the single clock. Passing dates in rather
+     * than calling CURDATE() also keeps the database from silently disagreeing
+     * when it runs in a different timezone to the app, which is the normal case
+     * on shared hosting.
+     */
+    public static function today(?DateTimeImmutable $asOf = null): string
+    {
+        return ($asOf ?? new DateTimeImmutable('today'))->format('Y-m-d');
+    }
+
+    /**
      * Invoice joined to its client, for detail views and message rendering.
      */
     public static function withClient(int $tenantId, int $id): ?array
