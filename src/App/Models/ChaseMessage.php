@@ -3,6 +3,7 @@
 namespace Keel\App\Models;
 
 use DateTimeImmutable;
+use Keel\App\Services\Clock;
 use Keel\Core\Env;
 
 /**
@@ -28,6 +29,7 @@ class ChaseMessage extends BaseModel
     {
         return [
             'chase_id',
+            'email_account_id',
             'sequence_step_id',
             'position',
             'to_email',
@@ -39,6 +41,9 @@ class ChaseMessage extends BaseModel
             'in_reply_to',
             'references_header',
             'status',
+            'attempts',
+            'next_attempt_at',
+            'dispatched_at',
             'scheduled_for',
             'sent_at',
             'failed_reason',
@@ -88,7 +93,7 @@ class ChaseMessage extends BaseModel
     {
         return static::update($tenantId, $id, [
             'status' => self::STATUS_SENT,
-            'sent_at' => ($sentAt ?? new DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'sent_at' => Clock::toDatabase($sentAt ?? Clock::now()),
             'failed_reason' => null,
         ]);
     }

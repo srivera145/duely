@@ -3,6 +3,7 @@
 namespace Keel\App\Models;
 
 use DateTimeImmutable;
+use Keel\App\Services\Clock;
 use Keel\App\Services\Crypto;
 
 /**
@@ -200,7 +201,7 @@ class EmailAccount extends BaseModel
     {
         return static::update($tenantId, $id, [
             'status' => self::STATUS_ACTIVE,
-            'last_verified_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'last_verified_at' => Clock::toDatabase(Clock::now()),
             'last_error' => null,
         ]);
     }
@@ -215,7 +216,7 @@ class EmailAccount extends BaseModel
 
     public static function recordPoll(int $tenantId, int $id, ?int $lastSeenUid = null): bool
     {
-        $attributes = ['imap_last_polled_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s')];
+        $attributes = ['imap_last_polled_at' => Clock::toDatabase(Clock::now())];
 
         if ($lastSeenUid !== null) {
             $attributes['imap_last_seen_uid'] = $lastSeenUid;

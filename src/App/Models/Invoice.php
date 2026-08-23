@@ -3,6 +3,7 @@
 namespace Keel\App\Models;
 
 use DateTimeImmutable;
+use Keel\App\Services\Clock;
 use InvalidArgumentException;
 
 /**
@@ -317,7 +318,7 @@ class Invoice extends BaseModel
     {
         return static::update($tenantId, $id, [
             'status' => self::STATUS_PAID,
-            'paid_at' => ($paidAt ?? new DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'paid_at' => Clock::toDatabase($paidAt ?? Clock::now()),
         ]);
     }
 

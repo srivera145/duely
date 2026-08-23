@@ -3,6 +3,7 @@
 namespace Keel\App\Models;
 
 use DateTimeImmutable;
+use Keel\App\Services\Clock;
 use Keel\Core\Database;
 
 /**
@@ -70,7 +71,7 @@ class Chase extends BaseModel
      */
     public static function due(int $tenantId, ?DateTimeImmutable $asOf = null, int $limit = 100): array
     {
-        $now = ($asOf ?? new DateTimeImmutable())->format('Y-m-d H:i:s');
+        $now = Clock::toDatabase($asOf ?? Clock::now());
 
         $sql = 'SELECT * FROM chases
                 WHERE tenant_id = ?
@@ -99,7 +100,7 @@ class Chase extends BaseModel
      */
     public static function tenantsWithWorkDue(?DateTimeImmutable $asOf = null): array
     {
-        $now = ($asOf ?? new DateTimeImmutable())->format('Y-m-d H:i:s');
+        $now = Clock::toDatabase($asOf ?? Clock::now());
 
         $sql = 'SELECT DISTINCT tenant_id FROM chases
                 WHERE status IN (?, ?)
@@ -188,9 +189,9 @@ class Chase extends BaseModel
         return static::update($tenantId, $id, [
             'status' => $nextSendAt === null ? self::STATUS_COMPLETED : self::STATUS_ACTIVE,
             'current_position' => $position,
-            'next_send_at' => $nextSendAt?->format('Y-m-d H:i:s'),
+            'next_send_at' => Clock::toDatabase($nextSendAt),
             'completed_at' => $nextSendAt === null
-                ? (new DateTimeImmutable())->format('Y-m-d H:i:s')
+                ? Clock::toDatabase(Clock::now())
                 : null,
         ]);
     }
@@ -200,7 +201,7 @@ class Chase extends BaseModel
         return static::update($tenantId, $id, [
             'status' => self::STATUS_PAUSED,
             'paused_reason' => $reason,
-            'paused_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'paused_at' => Clock::toDatabase(Clock::now()),
             'next_send_at' => null,
         ]);
     }
@@ -211,7 +212,7 @@ class Chase extends BaseModel
             'status' => $nextSendAt === null ? self::STATUS_COMPLETED : self::STATUS_ACTIVE,
             'paused_reason' => null,
             'paused_at' => null,
-            'next_send_at' => $nextSendAt?->format('Y-m-d H:i:s'),
+            'next_send_at' => Clock::toDatabase($nextSendAt),
         ]);
     }
 
@@ -220,7 +221,7 @@ class Chase extends BaseModel
         return static::update($tenantId, $id, [
             'status' => self::STATUS_STOPPED,
             'next_send_at' => null,
-            'stopped_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'stopped_at' => Clock::toDatabase(Clock::now()),
         ]);
     }
 
@@ -255,7 +256,7 @@ class Chase extends BaseModel
         return static::run($sql, [
             self::STATUS_PAUSED,
             $reason,
-            (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+            Clock::toDatabase(Clock::now()),
             $tenantId,
             $clientId,
             self::STATUS_SCHEDULED,
@@ -294,8 +295,8 @@ class Chase extends BaseModel
                 'email_account_id' => $emailAccountId,
                 'status' => self::STATUS_SCHEDULED,
                 'current_position' => $startPosition,
-                'next_send_at' => $nextSendAt?->format('Y-m-d H:i:s'),
-                'started_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+                'next_send_at' => Clock::toDatabase($nextSendAt),
+                'started_at' => Clock::toDatabase(Clock::now()),
             ]);
 
             $connection->commit();

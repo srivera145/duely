@@ -3,6 +3,7 @@
 namespace Keel\App\Models;
 
 use DateTimeImmutable;
+use Keel\App\Services\Clock;
 use Keel\Core\Database;
 
 /**
@@ -52,7 +53,7 @@ class ReplyEvent extends BaseModel
     public static function record(int $tenantId, array $attributes): ?int
     {
         $attributes['received_at'] = $attributes['received_at']
-            ?? (new DateTimeImmutable())->format('Y-m-d H:i:s');
+            ?? Clock::toDatabase(Clock::now());
 
         $sql = 'INSERT IGNORE INTO reply_events
                     (tenant_id, chase_id, chase_message_id, email_account_id, type,
@@ -132,7 +133,7 @@ class ReplyEvent extends BaseModel
     public static function markProcessed(int $tenantId, int $id, string $actionTaken): bool
     {
         return static::update($tenantId, $id, [
-            'processed_at' => (new DateTimeImmutable())->format('Y-m-d H:i:s'),
+            'processed_at' => Clock::toDatabase(Clock::now()),
             'action_taken' => $actionTaken,
         ]);
     }

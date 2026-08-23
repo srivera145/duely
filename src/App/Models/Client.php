@@ -22,6 +22,8 @@ class Client extends BaseModel
             'timezone',
             'notes',
             'is_archived',
+            'suppressed_at',
+            'suppressed_reason',
         ];
     }
 

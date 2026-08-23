@@ -19,22 +19,27 @@ Env::load($basePath);
 $once = in_array('--once', $argv, true);
 $queueName = 'default';
 
-try {
-    if ($once) {
-        processAvailableJobs($queueName);
-        exit(0);
-    }
-
-    while (true) {
-        $processed = processOneJob($queueName);
-
-        if (!$processed) {
-            sleep(2);
+// bin/worker.php requires this file to reuse the job-draining functions below
+// while running its own loop. When embedded, define the functions and fall
+// through rather than starting a second loop competing for the same jobs.
+if (!defined('DUELY_WORKER_EMBEDDED')) {
+    try {
+        if ($once) {
+            processAvailableJobs($queueName);
+            exit(0);
         }
+
+        while (true) {
+            $processed = processOneJob($queueName);
+
+            if (!$processed) {
+                sleep(2);
+            }
+        }
+    } catch (\Throwable $exception) {
+        fwrite(STDERR, $exception->getMessage() . "\n");
+        exit(1);
     }
-} catch (\Throwable $exception) {
-    fwrite(STDERR, $exception->getMessage() . "\n");
-    exit(1);
 }
 
 function processAvailableJobs(string $queueName): void

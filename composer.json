@@ -23,6 +23,8 @@
         "phpunit/phpunit": "^11.5"
     },
     "scripts": {
+        "worker": "php bin/worker.php",
+        "worker:once": "php bin/worker.php --once",
         "test:db": "php scripts/setup_test_db.php",
         "test:feature": [
             "@test:db",
