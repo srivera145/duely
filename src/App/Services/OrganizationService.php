@@ -43,6 +43,9 @@ class OrganizationService
             throw $exception;
         }
 
+        // Every new tenant starts with Duely's default escalation ladder.
+        SequenceSeeder::seedQuietly($organizationId);
+
         return $this->organization($organizationId) ?? [];
     }
 

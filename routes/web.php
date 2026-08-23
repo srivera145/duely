@@ -16,6 +16,7 @@ use Keel\App\Controllers\LlmsTxtController;
 use Keel\App\Controllers\ManifestController;
 use Keel\App\Controllers\OrganizationController;
 use Keel\App\Controllers\RobotsController;
+use Keel\App\Controllers\SequenceController;
 use Keel\App\Controllers\SettingsController;
 use Keel\App\Controllers\SitemapController;
 use Keel\App\Controllers\SuperAdminController;
@@ -121,6 +122,15 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->post('/api/invoices/import/commit', [ImportController::class, 'commit']);
             $router->post('/api/invoices/import/cancel', [ImportController::class, 'cancel']);
             $router->post('/api/invoices/import/errors.csv', [ImportController::class, 'downloadErrors']);
+
+            // Duely: the escalation ladder and its templates.
+            $router->get('/sequences', [SequenceController::class, 'index']);
+            $router->get('/sequences/{id}', [SequenceController::class, 'edit']);
+            $router->post('/api/sequences/preview', [SequenceController::class, 'preview']);
+            $router->post('/api/sequences/restore-default', [SequenceController::class, 'restoreDefault']);
+            $router->post('/api/sequences/{id}', [SequenceController::class, 'update']);
+            $router->post('/api/sequences/{id}/default', [SequenceController::class, 'makeDefault']);
+            $router->post('/api/sequences/{id}/delete', [SequenceController::class, 'destroy']);
 
             // Duely: the mailbox reminders are sent from and replies are read out of.
             $router->get('/settings/email', [SettingsController::class, 'email']);

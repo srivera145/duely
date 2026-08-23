@@ -3,6 +3,7 @@ import { initEmailAccount } from './components/email-account';
 import { initImportWizard } from './components/import-wizard';
 import { initModal } from './components/modal';
 import { initRecords } from './components/records';
+import { initSequenceEditor } from './components/sequence-editor';
 import { initTabs } from './components/tabs';
 import { initThemeToggle } from './components/theme-toggle';
 
@@ -124,6 +125,7 @@ const initSharedUi = () => {
 	initEmailAccount();
 	initImportWizard();
 	initRecords();
+	initSequenceEditor();
 };
 
 if (document.readyState === 'loading') {

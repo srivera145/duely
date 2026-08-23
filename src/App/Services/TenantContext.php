@@ -82,9 +82,20 @@ class TenantContext
 
             $connection->commit();
 
+            // A workspace without a sequence cannot chase anything, so the
+            // default ladder is part of creating one. Seeding failure is
+            // logged rather than raised: losing the sequence is recoverable,
+            // losing the signup is not.
+            SequenceSeeder::seedQuietly($organizationId);
+
             return $organizationId;
         } catch (\Throwable $exception) {
-            $connection->rollBack();
+            // The commit above may already have landed, so only roll back a
+            // transaction that is genuinely still open.
+            if ($connection->inTransaction()) {
+                $connection->rollBack();
+            }
+
             throw $exception;
         }
     }

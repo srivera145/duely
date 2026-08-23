@@ -20,6 +20,9 @@ class Sequence extends BaseModel
             'name',
             'description',
             'tone',
+            'send_window_start',
+            'send_window_end',
+            'skip_weekends',
             'is_active',
             'is_default',
         ];
