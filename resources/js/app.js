@@ -1,4 +1,5 @@
 import '../css/app.css';
+import { initEmailAccount } from './components/email-account';
 import { initModal } from './components/modal';
 import { initTabs } from './components/tabs';
 import { initThemeToggle } from './components/theme-toggle';
@@ -118,6 +119,7 @@ const initSharedUi = () => {
 	initTabs();
 	initModal();
 	mountCopyButtons();
+	initEmailAccount();
 };
 
 if (document.readyState === 'loading') {

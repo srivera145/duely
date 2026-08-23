@@ -13,6 +13,7 @@ use Keel\App\Controllers\LlmsTxtController;
 use Keel\App\Controllers\ManifestController;
 use Keel\App\Controllers\OrganizationController;
 use Keel\App\Controllers\RobotsController;
+use Keel\App\Controllers\SettingsController;
 use Keel\App\Controllers\SitemapController;
 use Keel\App\Controllers\SuperAdminController;
 use Keel\App\Controllers\ThemeController;
@@ -92,6 +93,14 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->post('/billing/portal', [BillingController::class, 'portal']);
             $router->post('/files', [FileController::class, 'store']);
             $router->get('/files/{id}', [FileController::class, 'show']);
+
+            // Duely: the mailbox reminders are sent from and replies are read out of.
+            $router->get('/settings/email', [SettingsController::class, 'email']);
+            $router->post('/api/email-account/preset', [SettingsController::class, 'preset']);
+            $router->post('/api/email-account/test', [SettingsController::class, 'test']);
+            $router->post('/api/email-account/save', [SettingsController::class, 'save']);
+            $router->post('/api/email-account/send-test', [SettingsController::class, 'sendTest']);
+            $router->post('/api/email-account/delete', [SettingsController::class, 'delete']);
         });
     });
 });
