@@ -1,6 +1,9 @@
 <div align="center">
 
-# Duely
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="resources/images/brand/duely-logo-dark.svg">
+  <img src="resources/images/brand/duely-logo.svg" alt="Duely — Polite today. Firm later." width="300">
+</picture>
 
 **Get paid without writing the awkward follow-up.**
 
