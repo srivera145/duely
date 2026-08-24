@@ -14,6 +14,7 @@ use Keel\App\Controllers\HealthController;
 use Keel\App\Controllers\ImportController;
 use Keel\App\Controllers\InvoiceController;
 use Keel\App\Controllers\LlmsTxtController;
+use Keel\App\Controllers\MarketingController;
 use Keel\App\Controllers\ManifestController;
 use Keel\App\Controllers\OnboardingController;
 use Keel\App\Controllers\OrganizationController;
@@ -25,6 +26,7 @@ use Keel\App\Controllers\SitemapController;
 use Keel\App\Controllers\SuperAdminController;
 use Keel\App\Controllers\ThemeController;
 use Keel\App\Controllers\StripeWebhookController;
+use Keel\App\Controllers\WaitlistController;
 use Keel\App\Controllers\WelcomeController;
 use Keel\App\Middleware\AuthMiddleware;
 use Keel\App\Middleware\ApiAuthMiddleware;
@@ -46,11 +48,28 @@ $router->get('/robots.txt', [RobotsController::class, 'index']);
 $router->get('/llms.txt', [LlmsTxtController::class, 'index']);
 
 $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use ($multiTenancyEnabled) {
-    $router->get('/', [WelcomeController::class, 'index'], ['sitemap' => true]);
+    // Duely: the public site. Routes rather than files under public_html,
+    // because a real file is served by the rewrite rule before the router runs
+    // — no CSRF token for the waitlist form, and no sitemap registration.
+    $router->get('/', [MarketingController::class, 'index'], ['sitemap' => true]);
+    $router->get('/how-it-works', [MarketingController::class, 'howItWorks'], ['sitemap' => true]);
+    $router->get('/pricing', [MarketingController::class, 'pricing'], ['sitemap' => true]);
+    $router->get('/privacy', [MarketingController::class, 'privacy'], ['sitemap' => true]);
+    $router->get('/terms', [MarketingController::class, 'terms'], ['sitemap' => true]);
+
+    // Keel's own landing page, kept reachable for the starter-kit docs.
+    $router->get('/keel', [WelcomeController::class, 'index']);
+
     $router->get('/docs', [DocsController::class, 'index'], ['sitemap' => true]);
     $router->get('/docs/{slug}', [DocsController::class, 'show']);
 
     $router->group(['middleware' => [ThrottleMiddleware::class]], function ($router) {
+        // Waitlist. Throttled because it sends email to an address a stranger
+        // chose, which is the shape of every open relay ever written.
+        $router->post('/api/waitlist', [WaitlistController::class, 'join']);
+        $router->get('/waitlist/confirm', [WaitlistController::class, 'confirm']);
+        $router->get('/waitlist/unsubscribe', [WaitlistController::class, 'unsubscribe']);
+
         $router->get('/login', [AuthController::class, 'showLogin'], ['sitemap' => true]);
         $router->post('/auth/otp/request', [AuthController::class, 'requestOtp']);
         $router->post('/auth/otp/verify', [AuthController::class, 'verifyOtp']);

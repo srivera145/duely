@@ -15,9 +15,24 @@ class LlmsTxtController extends Controller
         $repoUrl = trim((string) Env::get('APP_REPO_URL', ''));
 
         $lines = [
-            '# Keel',
+            '# Duely',
             '',
-            "> Open-source PHP 8.2 starter kit for SaaS applications with custom MVC, passwordless auth, billing, and docs. Not affiliated with other projects named Keel.",
+            '> Duely follows up on overdue invoices for freelancers and small studios. It sends '
+                . 'the reminders from the user\'s own mailbox rather than from a shared sending '
+                . 'domain, and stops the moment a client replies, an invoice is paid, or a message '
+                . 'bounces.',
+            '',
+            '## Pages',
+            '',
+            '- [Home](' . $baseUrl . '/): what Duely does and who it is for.',
+            '- [How it works](' . $baseUrl . '/how-it-works): the four setup steps, the reminder '
+                . 'ladder at days 3, 14 and 30, and every condition that stops a chase.',
+            '- [Pricing](' . $baseUrl . '/pricing): Free (3 active chases, 1 mailbox), Solo $19/mo '
+                . '(unlimited chases, 1 mailbox), Studio $39/mo (unlimited chases, 3 mailboxes, 5 '
+                . 'seats). The first 50 paying accounts keep $19/mo permanently.',
+            '- [Privacy and mailbox access](' . $baseUrl . '/privacy): exactly what Duely reads '
+                . 'from a mailbox, what it stores, and what it never does.',
+            '- [Terms](' . $baseUrl . '/terms)',
             '',
             '## Docs',
             '',

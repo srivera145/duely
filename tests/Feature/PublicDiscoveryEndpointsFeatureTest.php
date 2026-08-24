@@ -22,6 +22,11 @@ class PublicDiscoveryEndpointsFeatureTest extends TestCase
         self::assertStringContainsString('<loc>' . $baseUrl . '/docs</loc>', $response->body);
         self::assertStringContainsString('<loc>' . $baseUrl . '/login</loc>', $response->body);
 
+        // Every public marketing page, or the site is invisible.
+        foreach (['/how-it-works', '/pricing', '/privacy', '/terms'] as $path) {
+            self::assertStringContainsString('<loc>' . $baseUrl . $path . '</loc>', $response->body);
+        }
+
         foreach (DocsController::docsPages() as $page) {
             $slug = (string) ($page['slug'] ?? '');
             if ($slug === '') {
@@ -59,14 +64,25 @@ class PublicDiscoveryEndpointsFeatureTest extends TestCase
         self::assertStringContainsString('Sitemap: ' . $baseUrl . '/sitemap.xml', $response->body);
     }
 
-    public function testLlmsTxtUsesSharedDocsRegistryLinks(): void
+    public function testLlmsTxtDescribesDuelyAndLinksTheSharedDocsRegistry(): void
     {
         $response = $this->get('/llms.txt');
 
         self::assertSame(200, $response->status);
         self::assertStringContainsString('text/plain', (string) $response->header('Content-Type'));
-        self::assertStringContainsString('# Keel', $response->body);
+        self::assertStringContainsString('# Duely', $response->body);
         self::assertStringContainsString('## Docs', $response->body);
+
+        // A model reading this should come away with the differentiator and the
+        // prices, because those are the two things it will be asked.
+        self::assertStringContainsString('own mailbox', $response->body);
+        self::assertStringContainsString('$19/mo', $response->body);
+
+        $baseUrl = rtrim((string) ($_ENV['APP_URL'] ?? 'http://localhost'), '/');
+
+        foreach (['/how-it-works', '/pricing', '/privacy', '/terms'] as $path) {
+            self::assertStringContainsString('](' . $baseUrl . $path . ')', $response->body);
+        }
 
         $baseUrl = rtrim((string) ($_ENV['APP_URL'] ?? 'http://localhost'), '/');
 

@@ -12,17 +12,33 @@ $canonicalUrl = $appUrl !== ''
 	? $appUrl . ($requestPath === '/' ? '/' : $requestPath)
 	: ($requestPath === '' ? '/' : $requestPath);
 
-$defaultTitle = 'Keel - Open-Source PHP Starter Kit';
+$defaultTitle = 'Duely - Get paid without writing the awkward follow-up';
 $resolvedTitle = trim((string) ($title ?? $defaultTitle));
-if ($resolvedTitle === '' || strtolower($resolvedTitle) === 'keel') {
+if ($resolvedTitle === '' || strtolower($resolvedTitle) === 'duely') {
 	$resolvedTitle = $defaultTitle;
 }
 
-$defaultDescription = 'Keel is an open-source PHP 8.2 starter kit for SaaS apps with passwordless auth, Stripe billing, multi-tenancy, and docs.';
+$defaultDescription = 'Duely chases your overdue invoices from your own inbox, and stops the moment a client replies or pays.';
 $resolvedDescription = trim((string) ($metaDescription ?? $defaultDescription));
-$siteName = trim((string) \Keel\Core\Env::get('APP_NAME', 'Keel'));
-$siteName = $siteName !== '' ? $siteName : 'Keel';
-$socialImage = $appUrl !== '' ? $appUrl . '/images/brand/keel.png' : '/images/brand/keel.png';
+$siteName = 'Duely';
+$socialImage = $appUrl !== '' ? $appUrl . '/images/brand/duely-og.png' : '/images/brand/duely-og.png';
+
+// Pages that are reached from an email link, or that exist only as the result
+// of an action, are not search results.
+$isNoindex = (bool) ($noindex ?? false);
+
+// The marketing pages load a much smaller bundle than the application: the
+// landing page has one form on it, and shipping the whole app to read it is
+// how a static page ends up failing Core Web Vitals.
+$scriptEntries = (array) ($entrypoints ?? ['resources/js/app.js']);
+
+// Structured data. Accepts one node or several; anything invalid is dropped
+// rather than emitted, because a malformed graph is worse than none.
+$structuredData = $jsonLd ?? null;
+if ($structuredData !== null && array_is_list($structuredData) === false) {
+	$structuredData = [$structuredData];
+}
+$structuredData = array_values(array_filter((array) $structuredData, 'is_array'));
 ?>
 <script>
 	(function () {
@@ -59,12 +75,15 @@ $socialImage = $appUrl !== '' ? $appUrl . '/images/brand/keel.png' : '/images/br
 <meta name="csrf-token" content="<?= htmlspecialchars(\Keel\Core\Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
 <meta name="keel-authenticated" content="<?= $isAuthenticated ? '1' : '0' ?>">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#07111f">
+<meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="<?= htmlspecialchars(\Keel\Core\Env::get('APP_NAME', 'Keel')) ?>">
 <meta name="description" content="<?= htmlspecialchars($resolvedDescription, ENT_QUOTES, 'UTF-8') ?>">
 <link rel="canonical" href="<?= htmlspecialchars($canonicalUrl, ENT_QUOTES, 'UTF-8') ?>">
+<?php if ($isNoindex): ?>
+<meta name="robots" content="noindex, follow">
+<?php endif; ?>
 
 <meta property="og:title" content="<?= htmlspecialchars($resolvedTitle, ENT_QUOTES, 'UTF-8') ?>">
 <meta property="og:description" content="<?= htmlspecialchars($resolvedDescription, ENT_QUOTES, 'UTF-8') ?>">
@@ -83,4 +102,7 @@ $socialImage = $appUrl !== '' ? $appUrl . '/images/brand/keel.png' : '/images/br
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <title><?= htmlspecialchars($resolvedTitle, ENT_QUOTES, 'UTF-8') ?></title>
-<?= \Keel\Core\Vite::assets(['resources/js/app.js']) ?>
+<?php foreach ($structuredData as $node): ?>
+<script type="application/ld+json"><?= json_encode($node, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?></script>
+<?php endforeach; ?>
+<?= \Keel\Core\Vite::assets($scriptEntries) ?>

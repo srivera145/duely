@@ -5,77 +5,87 @@
 @tailwind utilities;
 
 /*
- * Design tokens
- * Re-theme a cloned project by changing values here.
+ * Duely design tokens.
+ *
+ * Accent green on near-black. The green is the only saturated colour on the
+ * page, which is what makes it read as an action rather than as decoration —
+ * so it is spent on one button per screen and almost nothing else.
+ *
+ * Text on the accent is near-black, not white: #22C55E against white is about
+ * 2.2:1 and fails at any size, while against #062012 it clears 8:1.
  */
 :root {
-  --color-brand: #ff6b3d;
-  --color-brand-hover: #ff835f;
-  --color-brand-contrast: #08101e;
+  --color-brand: #22c55e;
+  --color-brand-hover: #4ade80;
+  --color-brand-contrast: #062012;
 
-  --color-surface: #1f2937;
-  --color-surface-hover: #374151;
-  --color-surface-muted: #111827;
+  --color-surface: #0a0a0a;
+  --color-surface-hover: #1c1c1c;
+  --color-surface-muted: #141414;
 
-  --color-text: #f8fafc;
-  --color-text-muted: #94a3b8;
+  --color-text: #e5e5e5;
+  --color-text-muted: #a1a1a1;
   --color-text-strong: #ffffff;
 
-  --color-danger: #dc2626;
-  --color-danger-hover: #b91c1c;
-  --color-danger-soft: rgba(220, 38, 38, 0.18);
-  --color-danger-border: rgba(248, 113, 113, 0.48);
-  --color-danger-text: #fecaca;
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-danger-soft: rgba(239, 68, 68, 0.14);
+  --color-danger-border: rgba(248, 113, 113, 0.42);
+  --color-danger-text: #fca5a5;
 
-  --color-success: #16a34a;
-  --color-success-soft: rgba(22, 163, 74, 0.18);
-  --color-success-border: rgba(74, 222, 128, 0.4);
-  --color-success-text: #bbf7d0;
+  --color-success: #22c55e;
+  --color-success-soft: rgba(34, 197, 94, 0.14);
+  --color-success-border: rgba(74, 222, 128, 0.38);
+  --color-success-text: #86efac;
 
-  --color-card-bg: #0b1220;
-  --color-card-border: #334155;
-  --color-input-border: #475569;
+  --color-card-bg: #101010;
+  --color-card-border: #262626;
+  --color-input-border: #333333;
 
-  --color-table-head: #121c2f;
-  --color-table-row-alt: var(--color-surface-muted);
-  --color-table-row-hover: var(--color-surface-hover);
+  --color-table-head: #141414;
+  --color-table-row-alt: #101010;
+  --color-table-row-hover: #1c1c1c;
 
-  --color-empty-state-bg: rgba(15, 23, 42, 0.74);
-  --color-empty-state-border: #334155;
-  --color-empty-state-icon-bg: #1f2937;
-  --color-empty-state-icon-text: #cbd5e1;
+  --color-empty-state-bg: rgba(16, 16, 16, 0.74);
+  --color-empty-state-border: #262626;
+  --color-empty-state-icon-bg: #1c1c1c;
+  --color-empty-state-icon-text: #d4d4d4;
 
-  --color-modal-backdrop: rgba(2, 6, 23, 0.72);
+  --color-modal-backdrop: rgba(0, 0, 0, 0.74);
 
-  --shadow-brand-cta: 0 10px 30px rgba(255, 107, 61, 0.34);
+  --shadow-brand-cta: 0 10px 30px rgba(34, 197, 94, 0.24);
 
-  --color-back-to-top-border: rgba(105, 230, 216, 0.45);
+  --color-back-to-top-border: rgba(34, 197, 94, 0.34);
   --color-back-to-top-border-hover: var(--color-brand);
-  --color-back-to-top-bg-top: rgba(11, 24, 48, 0.96);
-  --color-back-to-top-bg-bottom: rgba(7, 17, 31, 0.96);
-  --color-back-to-top-glow: rgba(105, 230, 216, 0.2);
+  --color-back-to-top-bg-top: rgba(20, 20, 20, 0.96);
+  --color-back-to-top-bg-bottom: rgba(10, 10, 10, 0.96);
+  --color-back-to-top-glow: rgba(34, 197, 94, 0.16);
   --color-back-to-top-chevron: var(--color-brand);
-  --color-back-to-top-text: #f8fafc;
-  --color-back-to-top-stem: #f8fafc;
-  --color-back-to-top-focus: #69e6d8;
+  --color-back-to-top-text: #f5f5f5;
+  --color-back-to-top-stem: #f5f5f5;
+  --color-back-to-top-focus: #4ade80;
 
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
 }
 
+/*
+ * Light. The accent drops a step, because #22C55E on white is too light to
+ * carry a border or a line of text.
+ */
 [data-theme="light"] {
-  --color-brand: #ff6b3d;
-  --color-brand-hover: #ff835f;
-  --color-brand-contrast: #08101e;
+  --color-brand: #16a34a;
+  --color-brand-hover: #15803d;
+  --color-brand-contrast: #ffffff;
 
-  --color-surface: #1f2937;
-  --color-surface-hover: #111827;
-  --color-surface-muted: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f5f5;
+  --color-surface-muted: #f5f5f5;
 
-  --color-text: #f8fafc;
-  --color-text-muted: #4b5563;
-  --color-text-strong: #111827;
+  --color-text: #171717;
+  --color-text-muted: #525252;
+  --color-text-strong: #0a0a0a;
 
   --color-danger: #dc2626;
   --color-danger-hover: #b91c1c;
@@ -89,29 +99,31 @@
   --color-success-text: #166534;
 
   --color-card-bg: #ffffff;
-  --color-card-border: #d1d5db;
-  --color-input-border: #cbd5e1;
+  --color-card-border: #e5e5e5;
+  --color-input-border: #d4d4d4;
 
-  --color-table-head: #f3f4f6;
-  --color-table-row-alt: #f3f4f6;
-  --color-table-row-hover: #e5e7eb;
+  --color-table-head: #f5f5f5;
+  --color-table-row-alt: #fafafa;
+  --color-table-row-hover: #f0f0f0;
 
-  --color-empty-state-bg: rgba(243, 244, 246, 0.9);
-  --color-empty-state-border: #cbd5e1;
-  --color-empty-state-icon-bg: #e5e7eb;
-  --color-empty-state-icon-text: #1f2937;
+  --color-empty-state-bg: rgba(250, 250, 250, 0.9);
+  --color-empty-state-border: #e5e5e5;
+  --color-empty-state-icon-bg: #f0f0f0;
+  --color-empty-state-icon-text: #171717;
 
-  --color-modal-backdrop: rgba(15, 23, 42, 0.45);
+  --color-modal-backdrop: rgba(10, 10, 10, 0.45);
 
-  --color-back-to-top-border: rgba(15, 23, 42, 0.24);
+  --shadow-brand-cta: 0 10px 30px rgba(22, 163, 74, 0.2);
+
+  --color-back-to-top-border: rgba(10, 10, 10, 0.16);
   --color-back-to-top-border-hover: var(--color-brand);
   --color-back-to-top-bg-top: #ffffff;
-  --color-back-to-top-bg-bottom: #f8fafc;
-  --color-back-to-top-glow: rgba(255, 107, 61, 0.18);
+  --color-back-to-top-bg-bottom: #fafafa;
+  --color-back-to-top-glow: rgba(22, 163, 74, 0.14);
   --color-back-to-top-chevron: var(--color-brand);
-  --color-back-to-top-text: #0f172a;
-  --color-back-to-top-stem: #0f172a;
-  --color-back-to-top-focus: #2563eb;
+  --color-back-to-top-text: #0a0a0a;
+  --color-back-to-top-stem: #0a0a0a;
+  --color-back-to-top-focus: #16a34a;
 }
 
 @layer components {

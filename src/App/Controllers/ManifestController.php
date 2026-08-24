@@ -10,9 +10,9 @@ class ManifestController extends Controller
 {
     public function index(Request $request): never
     {
-        $appName = trim((string) Env::get('APP_NAME', 'Keel'));
+        $appName = trim((string) Env::get('APP_NAME', 'Duely'));
         if ($appName === '') {
-            $appName = 'Keel';
+            $appName = 'Duely';
         }
 
         $manifest = [
@@ -20,22 +20,25 @@ class ManifestController extends Controller
             'short_name' => $this->shortName($appName),
             'start_url' => '/',
             'display' => 'standalone',
-            'background_color' => '#07111f',
-            'theme_color' => '#07111f',
-            'description' => $appName . ' - built on Keel',
+            'background_color' => '#0a0a0a',
+            'theme_color' => '#0a0a0a',
+            'description' => 'Get paid without writing the awkward follow-up.',
+            // /images/brand, not /assets — /assets is Vite's build output and
+            // is emptied on every build, so an icon placed there survives
+            // exactly until the next `npm run build`.
             'icons' => [
                 [
-                    'src' => '/assets/brand/icon-192.png',
+                    'src' => '/images/brand/icon-192.png',
                     'sizes' => '192x192',
                     'type' => 'image/png',
                 ],
                 [
-                    'src' => '/assets/brand/icon-512.png',
+                    'src' => '/images/brand/icon-512.png',
                     'sizes' => '512x512',
                     'type' => 'image/png',
                 ],
                 [
-                    'src' => '/assets/brand/icon-maskable-512.png',
+                    'src' => '/images/brand/icon-maskable-512.png',
                     'sizes' => '512x512',
                     'type' => 'image/png',
                     'purpose' => 'maskable',

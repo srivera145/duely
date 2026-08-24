@@ -70,8 +70,18 @@ class SitemapController extends Controller
         $basePath = dirname(__DIR__, 3);
         $file = null;
 
-        if ($path === '/') {
-            $file = $basePath . '/views/welcome.php';
+        // The public pages are views, so their file mtime is a truthful
+        // lastmod: it moves when the copy changes and not before.
+        $marketing = [
+            '/' => '/views/marketing/index.php',
+            '/how-it-works' => '/views/marketing/how-it-works.php',
+            '/pricing' => '/views/marketing/pricing.php',
+            '/privacy' => '/views/marketing/privacy.php',
+            '/terms' => '/views/marketing/terms.php',
+        ];
+
+        if (isset($marketing[$path])) {
+            $file = $basePath . $marketing[$path];
         } elseif ($path === '/docs') {
             $file = $basePath . '/views/docs/index.php';
         } elseif (str_starts_with($path, '/docs/')) {

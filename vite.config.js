@@ -41,6 +41,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         app: 'resources/js/app.js',
+        // The public site loads this instead: one form's worth of script
+        // rather than the whole application.
+        marketing: 'resources/js/marketing.js',
       },
     },
   },
