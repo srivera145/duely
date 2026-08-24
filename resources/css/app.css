@@ -75,8 +75,12 @@
  * carry a border or a line of text.
  */
 [data-theme="light"] {
-  --color-brand: #16a34a;
-  --color-brand-hover: #15803d;
+  /* Two steps down from the dark-mode green, not one. #22C55E and even #16A34A
+     only reach about 3.3:1 against white, which fails AA both as link text and
+     under the white label on a filled button. #15803D clears 5:1 in both
+     directions, which is what lets the same token do both jobs. */
+  --color-brand: #15803d;
+  --color-brand-hover: #166534;
   --color-brand-contrast: #ffffff;
 
   --color-surface: #ffffff;

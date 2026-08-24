@@ -2,9 +2,13 @@
 /**
  * The public header.
  *
- * No menu button and no JavaScript: four links fit on a 375px screen if you
- * hide the longest one below 640px, and the footer carries the full set. A
- * hamburger here would be a script, a state, and a focus trap for four links.
+ * No menu button: four links fit on a 375px screen if you hide the longest one
+ * below 640px, and the footer carries the full set. A hamburger here would be a
+ * script, a state, and a focus trap for four links.
+ *
+ * The theme toggle is the one interactive control, and it is a real button in
+ * the markup rather than one the script injects — an injected control appears a
+ * frame late and shifts the row it lands in.
  */
 $current = $current ?? '';
 ?>
@@ -30,6 +34,12 @@ $current = $current ?? '';
                class="rounded-lg bg-brand px-3 py-1.5 font-medium text-brand-contrast transition hover:bg-brand-hover">
                 Join the waitlist
             </a>
+            <button type="button"
+                    class="theme-toggle-button h-9 w-9"
+                    data-theme-toggle
+                    aria-label="Switch between light and dark">
+                <span data-theme-toggle-icon aria-hidden="true"></span>
+            </button>
         </div>
     </nav>
 </header>

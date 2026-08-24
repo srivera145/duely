@@ -10,6 +10,7 @@
  * stylesheet and no application bundle.
  */
 import '../css/app.css';
+import { initThemeToggle } from './components/theme-toggle';
 
 const csrfToken = () =>
 	document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -65,6 +66,8 @@ const submit = async (form) => {
 };
 
 const init = () => {
+	initThemeToggle();
+
 	document.querySelectorAll('[data-waitlist-form]').forEach((form) => {
 		form.addEventListener('submit', (event) => {
 			event.preventDefault();

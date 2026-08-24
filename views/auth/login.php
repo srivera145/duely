@@ -1,192 +1,136 @@
 <?php
+/**
+ * Sign in.
+ *
+ * Built entirely on the shared design tokens rather than a palette of its own.
+ * The version this replaced carried thirty-odd hardcoded --keel-* colours, so
+ * rebranding the app left this one screen behind — which is exactly the failure
+ * a token system exists to prevent. Change the tokens, this changes with them.
+ */
 $authMethod = $authMethod ?? 'both';
+$csrfToken = \Keel\Core\Csrf::token();
 ?>
 <!DOCTYPE html>
 <html lang="en"<?= \Keel\Core\Theme::htmlAttribute() ?>>
 <head>
 <?php require __DIR__ . '/../partials/head.php'; ?>
 <style>
-    :root {
-        --keel-night: #07111f;
-        --keel-line: rgba(148, 163, 184, 0.18);
-        --keel-text: #e5eefb;
-        --keel-muted: #97a9c9;
-        --keel-accent: #ff6b3d;
-        --keel-cyan: #69e6d8;
-    }
-
-    [data-theme="light"] {
-        --keel-night: #f8fafc;
-        --keel-line: rgba(15, 23, 42, 0.16);
-        --keel-text: #0f172a;
-        --keel-muted: #475569;
-    }
-
-    body {
-        background:
-            radial-gradient(circle at top left, rgba(105, 230, 216, 0.14), transparent 28%),
-            radial-gradient(circle at top right, rgba(255, 107, 61, 0.15), transparent 32%),
-            linear-gradient(180deg, #091221 0%, #07111f 42%, #0c1730 100%);
-        color: var(--keel-text);
-    }
-
-    [data-theme="light"] body {
-        background:
-            radial-gradient(circle at top left, rgba(105, 230, 216, 0.12), transparent 30%),
-            radial-gradient(circle at top right, rgba(255, 107, 61, 0.12), transparent 35%),
-            linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
-    }
-
-    .keel-grid {
+    /* The faint grid behind the card. Drawn from the border token so it
+       lightens with the theme instead of staying a dark-mode artefact. */
+    .auth-grid {
         background-image:
-            linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+            linear-gradient(var(--color-card-border) 1px, transparent 1px),
+            linear-gradient(90deg, var(--color-card-border) 1px, transparent 1px);
         background-size: 44px 44px;
-        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.95), transparent 90%);
+        opacity: 0.35;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.9), transparent 88%);
     }
 
-    .keel-auth-card {
-        background: linear-gradient(180deg, rgba(11, 24, 48, 0.96), rgba(7, 17, 31, 0.92));
-        border: 1px solid var(--keel-line);
-        box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42);
-    }
-
-    [data-theme="light"] .keel-auth-card {
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
-        box-shadow: 0 22px 60px rgba(15, 23, 42, 0.14);
-    }
-
-    .keel-auth-content {
-        padding: 1.75rem;
-    }
-
-    @media (min-width: 640px) {
-        .keel-auth-content {
-            padding: 2rem;
-        }
-    }
-
-    .keel-auth-card::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: inherit;
-        border: 1px solid rgba(255, 255, 255, 0.04);
-        pointer-events: none;
-    }
-
-    .keel-auth-input {
-        background: rgba(11, 24, 48, 0.72);
-        border: 1px solid var(--keel-line);
-        color: var(--keel-text);
-        transition: border-color 160ms ease, box-shadow 160ms ease;
-    }
-
-    .keel-auth-input::placeholder {
-        color: var(--keel-muted);
-    }
-
-    [data-theme="light"] .keel-auth-input {
-        background: #ffffff;
-    }
-
-    .keel-auth-input:focus {
-        outline: none;
-        border-color: rgba(105, 230, 216, 0.52);
-        box-shadow: 0 0 0 3px rgba(105, 230, 216, 0.14);
-    }
-
-    .keel-tab-wrap {
-        border-bottom: 1px solid var(--keel-line);
-    }
-
-    .keel-tab-active {
-        color: #ffffff;
-        border-bottom-color: var(--keel-accent);
-    }
-
-    [data-theme="light"] .keel-tab-active {
-        color: var(--keel-text);
-    }
-
-    .keel-tab-inactive {
-        border-bottom-color: transparent;
-        color: var(--keel-muted);
-    }
-
-    .keel-auth-btn {
-        background: var(--keel-accent);
-        color: #08101e;
-        box-shadow: 0 10px 30px rgba(255, 107, 61, 0.34);
-    }
-
-    .keel-auth-btn:hover {
-        background: #ff835f;
-    }
-
-    .keel-tab-base {
-        border-bottom-width: 2px;
+    .auth-glow {
+        background: radial-gradient(circle at 50% 0%, var(--color-success-soft), transparent 62%);
     }
 </style>
 </head>
-<body class="min-h-screen antialiased">
-    <?php $csrfToken = \Keel\Core\Csrf::token(); ?>
+<body class="min-h-screen bg-surface text-text antialiased">
     <div class="relative isolate min-h-screen overflow-hidden px-4 py-10 sm:px-6 lg:px-8">
-        <div class="keel-grid absolute inset-0 -z-10 opacity-60"></div>
+        <div class="auth-grid absolute inset-0 -z-10"></div>
+        <div class="auth-glow absolute inset-x-0 top-0 -z-10 h-96"></div>
+
         <div class="mx-auto flex min-h-screen w-full max-w-sm items-center justify-center py-6">
-            <section class="card relative w-full rounded-3xl p-0 keel-auth-card">
-                <div class="keel-auth-content">
-                <div class="mb-6 flex items-center gap-3">
-                    <img src="/images/brand/keel-icon-light.png" alt="Keel icon" class="logo-dark-mode h-10 w-10 object-contain" loading="eager" decoding="async">
-                    <img src="/images/brand/keel-icon.png" alt="Keel icon" class="logo-light-mode h-10 w-10 object-contain" loading="eager" decoding="async">
-                    <div>
-                        <h1 class="text-3xl font-semibold tracking-[-0.03em] text-[var(--keel-text)]">Sign in</h1>
-                        <p class="mt-1 text-sm text-[var(--keel-muted)]">No password needed.</p>
-                    </div>
-                    <button type="button" class="theme-toggle-button ml-auto" data-theme-toggle>
+            <section class="w-full rounded-2xl border border-card-border bg-card p-7 shadow-2xl sm:p-8">
+
+                <div class="mb-7 flex items-center gap-3">
+                    <a href="/" class="flex items-center gap-2 text-lg font-semibold text-text-strong">
+                        <span class="h-2.5 w-2.5 rounded-full bg-brand" aria-hidden="true"></span>
+                        Duely
+                    </a>
+                    <button type="button"
+                            class="theme-toggle-button ml-auto"
+                            data-theme-toggle
+                            aria-label="Switch theme">
                         <span data-theme-toggle-icon aria-hidden="true"></span>
                     </button>
                 </div>
 
+                <h1 class="text-3xl font-semibold tracking-tight text-text-strong">Sign in</h1>
+                <p class="mt-1 text-sm text-text-muted">No password needed.</p>
+
                 <?php if (!empty($_GET['error']) && $_GET['error'] === 'invalid_invite'): ?>
-                <div class="alert alert-error mb-4 border-red-500/40 bg-red-500/10 px-3 py-2 text-red-200">That invite link is invalid, expired, or already used.</div>
+                <div class="mt-5 rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-sm text-danger-text">
+                    That invite link is invalid, expired, or already used.
+                </div>
                 <?php endif; ?>
 
                 <?php if ($authMethod === 'both'): ?>
-                <div class="mb-6 keel-tab-wrap">
-                    <div class="grid grid-cols-2 gap-4" data-tabs data-tabs-active-class="keel-tab-active" data-tabs-inactive-class="keel-tab-inactive">
-                        <button type="button" id="tab-otp" data-tab-target="panel-otp" aria-selected="true" class="keel-tab-base px-1 pb-2 text-sm font-semibold text-left transition keel-tab-active">Code</button>
-                        <button type="button" id="tab-magic" data-tab-target="panel-magic" aria-selected="false" class="keel-tab-base px-1 pb-2 text-sm font-semibold text-left transition keel-tab-inactive">Magic link</button>
+                <div class="mt-7 border-b border-card-border">
+                    <div class="grid grid-cols-2 gap-4"
+                         data-tabs
+                         data-tabs-active-class="border-brand text-text-strong"
+                         data-tabs-inactive-class="border-transparent text-text-muted">
+                        <button type="button" id="tab-otp" data-tab-target="panel-otp" aria-selected="true"
+                                class="border-b-2 border-brand px-1 pb-2 text-left text-sm font-semibold text-text-strong transition">
+                            Code
+                        </button>
+                        <button type="button" id="tab-magic" data-tab-target="panel-magic" aria-selected="false"
+                                class="border-b-2 border-transparent px-1 pb-2 text-left text-sm font-semibold text-text-muted transition">
+                            Magic link
+                        </button>
                     </div>
                 </div>
                 <?php endif; ?>
 
                 <?php if ($authMethod === 'otp' || $authMethod === 'both'): ?>
-                <div id="panel-otp" data-tab-panel="panel-otp" class="space-y-4">
+                <div id="panel-otp" data-tab-panel="panel-otp" class="mt-6 space-y-4">
                     <div id="otp-step-email">
-                        <label class="form-label text-[var(--keel-muted)]">Email</label>
-                        <input type="email" id="otp-email" class="form-input keel-auth-input" placeholder="you@example.com">
-                        <button type="button" id="otp-send" class="btn btn-primary btn-md mt-3 w-full keel-auth-btn">Send code</button>
+                        <label for="otp-email" class="block text-sm font-medium text-text-muted">Email</label>
+                        <input type="email" id="otp-email" autocomplete="email" inputmode="email"
+                               placeholder="you@example.com"
+                               class="mt-2 w-full rounded-lg border border-input-border bg-surface-muted px-4 py-3 text-base text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40">
+                        <button type="button" id="otp-send"
+                                class="mt-3 w-full rounded-lg bg-brand px-4 py-3 font-semibold text-brand-contrast transition hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand/50">
+                            Send code
+                        </button>
                     </div>
                     <div id="otp-step-code" class="hidden">
-                        <label class="form-label text-[var(--keel-muted)]">Enter the 6-digit code</label>
-                        <input type="text" id="otp-code" maxlength="6" inputmode="numeric" class="form-input text-center tracking-widest keel-auth-input" placeholder="000000">
-                        <button type="button" id="otp-verify" class="btn btn-primary btn-md mt-3 w-full keel-auth-btn">Verify</button>
+                        <label for="otp-code" class="block text-sm font-medium text-text-muted">
+                            Enter the 6-digit code
+                        </label>
+                        <input type="text" id="otp-code" maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+                               placeholder="000000"
+                               class="mt-2 w-full rounded-lg border border-input-border bg-surface-muted px-4 py-3 text-center text-base tracking-[0.4em] text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40">
+                        <button type="button" id="otp-verify"
+                                class="mt-3 w-full rounded-lg bg-brand px-4 py-3 font-semibold text-brand-contrast transition hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand/50">
+                            Verify
+                        </button>
                     </div>
                 </div>
                 <?php endif; ?>
 
                 <?php if ($authMethod === 'magic_link' || $authMethod === 'both'): ?>
-                <div id="panel-magic" data-tab-panel="panel-magic" class="space-y-4 <?= $authMethod === 'both' ? 'hidden' : '' ?>">
-                    <label class="form-label text-[var(--keel-muted)]">Email</label>
-                    <input type="email" id="magic-email" class="form-input keel-auth-input" placeholder="you@example.com">
-                    <button type="button" id="magic-send" class="btn btn-primary btn-md mt-3 w-full keel-auth-btn">Send magic link</button>
-                    <p id="magic-sent" class="mt-3 hidden text-sm text-emerald-300">Check your email for the sign-in link.</p>
+                <div id="panel-magic" data-tab-panel="panel-magic"
+                     class="mt-6 space-y-4 <?= $authMethod === 'both' ? 'hidden' : '' ?>">
+                    <label for="magic-email" class="block text-sm font-medium text-text-muted">Email</label>
+                    <input type="email" id="magic-email" autocomplete="email" inputmode="email"
+                           placeholder="you@example.com"
+                           class="mt-2 w-full rounded-lg border border-input-border bg-surface-muted px-4 py-3 text-base text-text placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40">
+                    <button type="button" id="magic-send"
+                            class="mt-3 w-full rounded-lg bg-brand px-4 py-3 font-semibold text-brand-contrast transition hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand/50">
+                        Send magic link
+                    </button>
+                    <p id="magic-sent" class="mt-3 hidden text-sm text-brand">
+                        Check your email for the sign-in link.
+                    </p>
                 </div>
                 <?php endif; ?>
 
-                <p id="auth-error" class="mt-4 hidden text-sm text-red-300"></p>
-                </div>
+                <p id="auth-error" role="alert" class="mt-4 hidden text-sm text-danger-text"></p>
+
+                <p class="mt-7 border-t border-card-border pt-5 text-center text-sm text-text-muted">
+                    Not signed up yet?
+                    <a href="/#waitlist" class="text-brand underline underline-offset-4 hover:text-brand-hover">
+                        Join the waitlist
+                    </a>
+                </p>
             </section>
         </div>
     </div>
