@@ -1,21 +1,33 @@
-MIT License
+Duely — Proprietary Software License
 
-Copyright (c) 2026 Santos Rivera contributors
+Copyright © 2026 EchoDial LLC. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software and its source code, documentation, design assets, and all
+associated materials (the "Software") are the confidential and proprietary
+property of EchoDial LLC.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+No licence to use, copy, modify, merge, publish, distribute, sublicense, sell,
+or create derivative works from the Software is granted by this file. Access to
+the Software — including access to this repository — does not constitute such a
+licence, and no licence may be implied from that access or from any course of
+dealing.
+
+Any use of the Software requires prior written permission from EchoDial LLC.
+Where such permission has been granted in a separate written agreement, the
+terms of that agreement govern and this notice does not limit them.
+
+Unauthorised copying, distribution, or disclosure of the Software, in whole or
+in part, by any means, is prohibited.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL
+ECHODIAL LLC BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN
+AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+The Software incorporates third-party components that remain under their own
+licences. Those components and their licences are listed in NOTICE, and nothing
+in this file restricts the rights granted by them.
+
+EchoDial LLC

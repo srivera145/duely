@@ -75,7 +75,7 @@ $structuredData = array_values(array_filter((array) $structuredData, 'is_array')
 <meta name="csrf-token" content="<?= htmlspecialchars(\Keel\Core\Csrf::token(), ENT_QUOTES, 'UTF-8') ?>">
 <meta name="keel-authenticated" content="<?= $isAuthenticated ? '1' : '0' ?>">
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="<?= htmlspecialchars(\Keel\Core\Env::get('APP_NAME', 'Keel')) ?>">
@@ -96,7 +96,9 @@ $structuredData = array_values(array_filter((array) $structuredData, 'is_array')
 <meta name="twitter:title" content="<?= htmlspecialchars($resolvedTitle, ENT_QUOTES, 'UTF-8') ?>">
 <meta name="twitter:description" content="<?= htmlspecialchars($resolvedDescription, ENT_QUOTES, 'UTF-8') ?>">
 <meta name="twitter:image" content="<?= htmlspecialchars($socialImage, ENT_QUOTES, 'UTF-8') ?>">
-<!-- Favicons are generated from the raster keel-icon.png source; swap in a vector source later for crisper scaling. -->
+<!-- Favicons are generated from resources/images/brand/duely-mark.svg. The
+     16px and 32px variants carry a simplified two-dot rail: at those sizes
+     three dots and two connecting lines collapse into a smear. -->
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">

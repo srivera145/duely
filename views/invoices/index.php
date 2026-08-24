@@ -53,8 +53,8 @@ $chaseLabel = static function (array $row): array {
 
     return match ($row['chase_status']) {
         'scheduled' => ['text' => 'Scheduled', 'class' => 'text-text'],
-        'active' => ['text' => 'Chasing · step ' . (int) $row['chase_position'], 'class' => 'text-emerald-400'],
-        'paused' => ['text' => $reasons[$row['chase_paused_reason']] ?? 'Paused', 'class' => 'text-amber-400'],
+        'active' => ['text' => 'Chasing · step ' . (int) $row['chase_position'], 'class' => 'text-brand'],
+        'paused' => ['text' => $reasons[$row['chase_paused_reason']] ?? 'Paused', 'class' => 'text-tone-firm'],
         'completed' => ['text' => 'Sequence finished', 'class' => 'text-text-muted'],
         'stopped' => ['text' => 'Stopped', 'class' => 'text-text-muted'],
         default => ['text' => 'Not chasing', 'class' => 'text-text-muted'],
@@ -204,11 +204,11 @@ $queryWith = static function (array $overrides) use ($filters): string {
                             <?php if ($row['status'] !== 'open'): ?>
                             <span class="text-text-muted">—</span>
                             <?php elseif ($days > 0): ?>
-                            <span class="font-semibold <?= $days >= 30 ? 'text-red-400' : 'text-amber-400' ?>">
+                            <span class="font-semibold <?= \Keel\App\Services\ToneRamp::text(\Keel\App\Services\ToneRamp::forDaysOverdue($days)) ?>">
                                 <?= $days ?> day<?= $days === 1 ? '' : 's' ?>
                             </span>
                             <?php elseif ($days === 0): ?>
-                            <span class="text-amber-400">Due today</span>
+                            <span class="text-tone-polite">Due today</span>
                             <?php else: ?>
                             <span class="text-text-muted">in <?= abs($days) ?> day<?= abs($days) === 1 ? '' : 's' ?></span>
                             <?php endif; ?>
@@ -216,10 +216,10 @@ $queryWith = static function (array $overrides) use ($filters): string {
                         <td>
                             <?php
                             $statusClass = match ($row['status']) {
-                                'paid' => 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
+                                'paid' => 'border-success-border bg-success-soft text-success-text',
                                 'void' => 'border-gray-500/30 bg-gray-500/10 text-gray-400',
                                 default => $isOverdue
-                                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                                    ? \Keel\App\Services\ToneRamp::pill(\Keel\App\Services\ToneRamp::forDaysOverdue($days))
                                     : 'border-card-border bg-surface-muted text-text-muted',
                             };
                             ?>

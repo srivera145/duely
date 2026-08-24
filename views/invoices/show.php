@@ -22,9 +22,9 @@ $eventStyles = [
     'created' => ['dot' => 'bg-text-muted', 'icon' => '+'],
     'chase_started' => ['dot' => 'bg-brand', 'icon' => '→'],
     'message' => ['dot' => 'bg-brand', 'icon' => '↑'],
-    'reply' => ['dot' => 'bg-emerald-500', 'icon' => '↓'],
-    'paused' => ['dot' => 'bg-amber-500', 'icon' => '‖'],
-    'paid' => ['dot' => 'bg-emerald-500', 'icon' => '✓'],
+    'reply' => ['dot' => 'bg-success', 'icon' => '↓'],
+    'paused' => ['dot' => 'bg-tone-firm', 'icon' => '‖'],
+    'paid' => ['dot' => 'bg-success', 'icon' => '✓'],
     'void' => ['dot' => 'bg-text-muted', 'icon' => '×'],
 ];
 ?>
@@ -49,7 +49,7 @@ $eventStyles = [
                     · due <?= $e($invoice['due_date']) ?>
                 </p>
                 <?php if ($isOpen && $daysOverdue > 0): ?>
-                <p class="mt-1 text-sm text-amber-400">
+                <p class="mt-1 text-sm <?= \Keel\App\Services\ToneRamp::text(\Keel\App\Services\ToneRamp::forDaysOverdue((int) $daysOverdue)) ?>">
                     <?= $e(\Keel\App\Services\RelativeTime::overdueLabel($daysOverdue)) ?>
                 </p>
                 <?php endif; ?>
@@ -71,16 +71,17 @@ $eventStyles = [
             <div class="flex items-start justify-between gap-2">
                 <?php foreach ($rail as $index => $rung): ?>
                 <?php
+                $tone = (string) ($rung['tone'] ?? '');
                 [$dotClass, $labelClass] = match ($rung['state']) {
-                    'sent' => ['bg-brand border-brand', 'text-text-strong'],
-                    'due' => ['bg-amber-500/20 border-amber-500', 'text-amber-400'],
+                    'sent' => [\Keel\App\Services\ToneRamp::dotFilled($tone), 'text-text-strong'],
+                    'due' => [\Keel\App\Services\ToneRamp::dotDue($tone), \Keel\App\Services\ToneRamp::text($tone)],
                     'cancelled' => ['bg-surface-muted border-card-border', 'text-text-muted line-through'],
                     default => ['bg-surface-muted border-card-border', 'text-text-muted'],
                 };
                 ?>
                 <div class="flex flex-1 flex-col items-center text-center">
                     <div class="flex w-full items-center">
-                        <div class="h-0.5 flex-1 <?= $index === 0 ? 'bg-transparent' : ($rung['state'] === 'sent' ? 'bg-brand' : 'bg-card-border') ?>"></div>
+                        <div class="h-0.5 flex-1 <?= $index === 0 ? 'bg-transparent' : ($rung['state'] === 'sent' ? \Keel\App\Services\ToneRamp::line($tone) : 'bg-card-border') ?>"></div>
                         <div class="mx-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 <?= $dotClass ?>">
                             <?php if ($rung['state'] === 'sent'): ?>
                             <span class="text-xs font-bold text-brand-contrast">✓</span>
@@ -91,7 +92,7 @@ $eventStyles = [
                         <div class="h-0.5 flex-1 <?= $index === count($rail) - 1 ? 'bg-transparent' : 'bg-card-border' ?>"></div>
                     </div>
                     <p class="mt-2 text-xs font-medium <?= $labelClass ?>"><?= $e($rung['label']) ?></p>
-                    <p class="text-xs capitalize text-text-muted"><?= $e($rung['tone']) ?></p>
+                    <p class="text-xs capitalize <?= \Keel\App\Services\ToneRamp::text($tone) ?>"><?= $e($rung['tone']) ?></p>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -192,7 +193,7 @@ $eventStyles = [
                     <?php endif; ?>
 
                     <?php if ($event['type'] === 'reply' && !empty($event['snippet'])): ?>
-                    <blockquote class="mt-2 rounded-lg border-l-2 border-emerald-500 bg-emerald-500/5 px-3 py-2 text-sm text-text">
+                    <blockquote class="mt-2 rounded-lg border-l-2 border-success bg-success-soft px-3 py-2 text-sm text-text">
                         <?= $e($event['snippet']) ?>
                         <footer class="mt-1 text-xs text-text-muted">— <?= $e($event['from_email']) ?></footer>
                     </blockquote>

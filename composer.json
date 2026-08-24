@@ -1,8 +1,8 @@
 {
-    "name": "santosrivera/keel",
-    "description": "Santos Rivera's PHP framework: MVC structure, OTP + Magic Link auth, mailer, and routing.",
+    "name": "echodial/duely",
+    "description": "Polite, escalating invoice reminders sent from your own inbox. Stops the moment a client replies.",
     "type": "project",
-    "license": "MIT",
+    "license": "proprietary",
     "require": {
         "php": "^8.2",
         "phpmailer/phpmailer": "^6.9",

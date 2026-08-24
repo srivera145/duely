@@ -284,7 +284,7 @@ $tones = [
             </button>
 
             <div id="sequence-error" class="hidden rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-text"></div>
-            <div id="sequence-saved" class="hidden rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-400"></div>
+            <div id="sequence-saved" class="hidden rounded-lg border border-success-border bg-success-soft p-3 text-sm text-success-text"></div>
 
             <div class="flex flex-wrap items-center gap-3">
                 <button type="submit" class="btn btn-primary">Save sequence</button>

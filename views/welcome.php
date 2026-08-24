@@ -5,7 +5,6 @@ use Keel\Core\Env;
 $repoUrl = trim((string) Env::get('APP_REPO_URL', ''));
 $repoHref = $repoUrl !== '' ? $repoUrl : 'https://github.com';
 $repoLabel = $repoUrl !== '' ? 'GitHub' : 'GitHub (set APP_REPO_URL before publishing)';
-$hasLicense = file_exists(dirname(__DIR__) . '/LICENSE');
 $metaDescription = 'Keel is an open-source PHP 8.2 starter kit for SaaS apps with passwordless auth, Stripe billing, multi-tenancy, and docs.';
 
 $softwareSchema = [
@@ -331,8 +330,8 @@ $quickstartSteps = [
             <nav class="keel-card rounded-full px-4 py-3 sm:px-6" aria-label="Primary">
                 <div class="flex items-center justify-between gap-4">
                     <a href="/" class="keel-ring keel-text-strong inline-flex items-center gap-3 rounded-full text-sm font-semibold uppercase tracking-[0.3em]">
-                        <img src="/images/brand/keel-light.png" alt="Keel logo" class="logo-dark-mode h-10 object-contain" loading="eager" decoding="async">
-                        <img src="/images/brand/keel.png" alt="Keel logo" class="logo-light-mode h-10 object-contain" loading="eager" decoding="async">
+                        <img src="/images/brand/duely-mark.svg" alt="" aria-hidden="true" class="h-4 w-auto" loading="eager" decoding="async">
+                        <span>Duely</span>
                     </a>
 
                     <button type="button" id="mobile-menu-button" class="keel-ring keel-nav-link keel-subtle-border inline-flex items-center justify-center rounded-full border px-3 py-2 text-sm md:hidden" aria-expanded="false" aria-controls="mobile-menu">
@@ -500,10 +499,10 @@ $quickstartSteps = [
 
         <footer class="keel-subtle-border border-t">
             <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-[var(--keel-muted)] sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-                <p>Built by Santos Rivera.</p>
+                <p>Built on Keel.</p>
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
                     <a href="<?= htmlspecialchars($repoHref) ?>" class="keel-ring keel-nav-link transition" target="_blank" rel="noreferrer"><?= htmlspecialchars($repoLabel) ?></a>
-                    <p><?= $hasLicense ? 'MIT licensed' : 'License: ' . (Env::get('APP_LICENSE', 'TODO') === 'TODO' ? 'TODO' : htmlspecialchars((string) Env::get('APP_LICENSE'))) ?></p>
+                    <p>&copy; <?= date('Y') ?> EchoDial LLC</p>
                 </div>
             </div>
         </footer>

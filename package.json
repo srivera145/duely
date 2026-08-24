@@ -1,6 +1,7 @@
 {
-  "name": "keel",
+  "name": "duely",
   "private": true,
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",

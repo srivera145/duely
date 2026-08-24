@@ -15,7 +15,7 @@ $exists = (bool) ($account['exists'] ?? false);
 $notice = $account['app_password_notice'] ?? null;
 
 $statusStyles = [
-    'active' => ['label' => 'Connected', 'class' => 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'],
+    'active' => ['label' => 'Connected', 'class' => 'border-success-border bg-success-soft text-success-text'],
     'needs_reauth' => ['label' => 'Needs attention', 'class' => 'border-amber-500/30 bg-amber-500/10 text-amber-400'],
     'disabled' => ['label' => 'Disabled', 'class' => 'border-gray-500/30 bg-gray-500/10 text-gray-400'],
     'unverified' => ['label' => 'Not connected', 'class' => 'border-gray-500/30 bg-gray-500/10 text-gray-400'],

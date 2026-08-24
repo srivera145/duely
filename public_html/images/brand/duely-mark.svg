@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 118 40" role="img" aria-label="Duely">
+  <title>Duely</title>
+  <line x1="15.0" y1="20.0" x2="60.0" y2="20.0" stroke="#14b8a6" stroke-width="5.0" stroke-linecap="round"/>
+  <line x1="60.0" y1="20.0" x2="94.5" y2="20.0" stroke="#f59e0b" stroke-width="5.0" stroke-linecap="round"/>
+  <circle cx="15.0" cy="20.0" r="13.0" fill="#14b8a6"/>
+  <circle cx="60.0" cy="20.0" r="13.0" fill="#f59e0b"/>
+  <circle cx="105.0" cy="20.0" r="10.5" fill="none" stroke="#ef4444" stroke-width="5.0"/>
+</svg>

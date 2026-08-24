@@ -87,7 +87,7 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                     <div class="flex items-start gap-4">
                         <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 <?=
                             $step['done']
-                                ? 'border-emerald-500 bg-emerald-500/15 text-emerald-400'
+                                ? 'border-success bg-success-soft text-success-text'
                                 : ($step['is_current'] ? 'border-brand text-brand' : 'border-card-border text-text-muted') ?>">
                             <?= $step['done'] ? '&check;' : (int) $step['number'] ?>
                         </span>
@@ -101,7 +101,7 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
 
                     <div class="flex shrink-0 items-center gap-2">
                         <?php if ($step['done']): ?>
-                        <span class="text-xs text-emerald-400">Done</span>
+                        <span class="text-xs text-success-text">Done</span>
                         <?php else: ?>
                         <a href="<?= $e($step['href']) ?>"
                            class="btn btn-sm <?= $step['is_current'] ? 'btn-primary' : 'btn-secondary border border-card-border' ?>">

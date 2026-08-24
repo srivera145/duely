@@ -33,7 +33,7 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
                     <?= $isNew ? 'New invoice' : $e($invoice['number']) ?>
                 </h1>
                 <?php if (!$isNew && $invoice['status'] === 'open' && $daysOverdue > 0): ?>
-                <p class="mt-2 text-sm text-amber-400"><?= (int) $daysOverdue ?> days overdue</p>
+                <p class="mt-2 text-sm <?= \Keel\App\Services\ToneRamp::text(\Keel\App\Services\ToneRamp::forDaysOverdue((int) $daysOverdue)) ?>"><?= (int) $daysOverdue ?> days overdue</p>
                 <?php endif; ?>
             </div>
             <a href="/invoices" class="text-sm text-text-muted hover:text-text-strong">Back to invoices</a>
@@ -139,7 +139,7 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
             </section>
 
             <div id="invoice-error" class="hidden rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-text"></div>
-            <div id="invoice-saved" class="hidden rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-400"></div>
+            <div id="invoice-saved" class="hidden rounded-lg border border-success-border bg-success-soft p-3 text-sm text-success-text"></div>
 
             <div class="flex flex-wrap items-center gap-3">
                 <button type="submit" class="btn btn-primary"><?= $isNew ? 'Create invoice' : 'Save changes' ?></button>

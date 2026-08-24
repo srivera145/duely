@@ -184,8 +184,8 @@ $steps = [
 
         <!-- Step 4: result -->
         <section data-step-panel="4" class="hidden space-y-6">
-            <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-6">
-                <h2 class="text-lg font-semibold text-emerald-400" data-result-headline></h2>
+            <div class="rounded-xl border border-success-border bg-success-soft p-6">
+                <h2 class="text-lg font-semibold text-success-text" data-result-headline></h2>
                 <p class="mt-1 text-sm text-text-muted" data-result-detail></p>
             </div>
 

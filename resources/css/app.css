@@ -7,17 +7,26 @@
 /*
  * Duely design tokens.
  *
- * Accent green on near-black. The green is the only saturated colour on the
- * page, which is what makes it read as an action rather than as decoration —
- * so it is spent on one button per screen and almost nothing else.
+ * Teal accent on near-black, taken from the logo. Teal is the only saturated
+ * colour spent on interface chrome, which is what makes it read as an action
+ * rather than as decoration.
  *
- * Text on the accent is near-black, not white: #22C55E against white is about
- * 2.2:1 and fails at any size, while against #062012 it clears 8:1.
+ * Green is reserved for success and nothing else. When brand and success were
+ * the same green, a primary button and a "saved" badge were indistinguishable,
+ * and a user could not tell an invitation to act from a report that something
+ * had worked.
+ *
+ * Text on the accent is near-black rather than white: #14B8A6 against white is
+ * about 2.5:1 and fails at any size.
  */
 :root {
-  --color-brand: #22c55e;
-  --color-brand-hover: #4ade80;
-  --color-brand-contrast: #062012;
+  --color-brand: #14b8a6;
+  --color-brand-hover: #2dd4bf;
+  /* Not #042F2A. The brief asked for 7:1 against the fill and that value only
+     reaches 5.84:1 — teal is light enough that even pure black on it is just
+     8.44:1, so the whole 7:1 band sits below luminance 0.0103. This is the
+     nearest teal-cast near-black that clears the bar, at 7.27:1. */
+  --color-brand-contrast: #001a17;
 
   --color-surface: #0a0a0a;
   --color-surface-hover: #1c1c1c;
@@ -33,10 +42,34 @@
   --color-danger-border: rgba(248, 113, 113, 0.42);
   --color-danger-text: #fca5a5;
 
+  /* Green, and only for success. Deliberately not equal to --color-brand. */
   --color-success: #22c55e;
   --color-success-soft: rgba(34, 197, 94, 0.14);
   --color-success-border: rgba(74, 222, 128, 0.38);
   --color-success-text: #86efac;
+
+  /*
+   * The escalation ramp, one token per rung of the tone ladder.
+   *
+   * These are the logo's three dots: a polite nudge, a firmer note, a final
+   * message. They were Tailwind literals scattered across fifty-odd places,
+   * which meant the ramp could not be re-themed and did not match the mark.
+   *
+   * `polite` is the brand teal on purpose — the first rung is not a warning,
+   * and colouring it amber tells a client three days late that something has
+   * gone wrong.
+   */
+  --color-tone-polite: #14b8a6;
+  --color-tone-polite-soft: rgba(20, 184, 166, 0.14);
+  --color-tone-polite-border: rgba(45, 212, 191, 0.38);
+
+  --color-tone-firm: #f59e0b;
+  --color-tone-firm-soft: rgba(245, 158, 11, 0.14);
+  --color-tone-firm-border: rgba(251, 191, 36, 0.38);
+
+  --color-tone-final: #ef4444;
+  --color-tone-final-soft: rgba(239, 68, 68, 0.14);
+  --color-tone-final-border: rgba(248, 113, 113, 0.38);
 
   --color-card-bg: #101010;
   --color-card-border: #262626;
@@ -53,17 +86,17 @@
 
   --color-modal-backdrop: rgba(0, 0, 0, 0.74);
 
-  --shadow-brand-cta: 0 10px 30px rgba(34, 197, 94, 0.24);
+  --shadow-brand-cta: 0 10px 30px rgba(20, 184, 166, 0.24);
 
-  --color-back-to-top-border: rgba(34, 197, 94, 0.34);
+  --color-back-to-top-border: rgba(20, 184, 166, 0.34);
   --color-back-to-top-border-hover: var(--color-brand);
   --color-back-to-top-bg-top: rgba(20, 20, 20, 0.96);
   --color-back-to-top-bg-bottom: rgba(10, 10, 10, 0.96);
-  --color-back-to-top-glow: rgba(34, 197, 94, 0.16);
+  --color-back-to-top-glow: rgba(20, 184, 166, 0.16);
   --color-back-to-top-chevron: var(--color-brand);
   --color-back-to-top-text: #f5f5f5;
   --color-back-to-top-stem: #f5f5f5;
-  --color-back-to-top-focus: #4ade80;
+  --color-back-to-top-focus: #2dd4bf;
 
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -71,16 +104,17 @@
 }
 
 /*
- * Light. The accent drops a step, because #22C55E on white is too light to
- * carry a border or a line of text.
+ * Light. Every accent drops a step or two, because the dark-mode values are
+ * tuned against near-black and are far too light to carry text or a border on
+ * white.
  */
 [data-theme="light"] {
-  /* Two steps down from the dark-mode green, not one. #22C55E and even #16A34A
-     only reach about 3.3:1 against white, which fails AA both as link text and
-     under the white label on a filled button. #15803D clears 5:1 in both
-     directions, which is what lets the same token do both jobs. */
-  --color-brand: #15803d;
-  --color-brand-hover: #166534;
+  /* The dark-mode teal #14B8A6 manages only about 2.5:1 against white, which
+     fails AA both as link text and under a white label on a filled button.
+     #0F766E clears 5.4:1 in both directions, which is what lets one token do
+     both jobs. */
+  --color-brand: #0f766e;
+  --color-brand-hover: #115e59;
   --color-brand-contrast: #ffffff;
 
   --color-surface: #ffffff;
@@ -97,10 +131,25 @@
   --color-danger-border: #fecaca;
   --color-danger-text: #991b1b;
 
+  /* Still green, still not the brand. */
   --color-success: #16a34a;
   --color-success-soft: #f0fdf4;
   --color-success-border: #bbf7d0;
   --color-success-text: #166534;
+
+  /* The same ramp, darkened for white. #F59E0B and #EF4444 are both under
+     3:1 on white; these clear 5:1. */
+  --color-tone-polite: #0f766e;
+  --color-tone-polite-soft: #f0fdfa;
+  --color-tone-polite-border: #99f6e4;
+
+  --color-tone-firm: #b45309;
+  --color-tone-firm-soft: #fffbeb;
+  --color-tone-firm-border: #fde68a;
+
+  --color-tone-final: #b91c1c;
+  --color-tone-final-soft: #fef2f2;
+  --color-tone-final-border: #fecaca;
 
   --color-card-bg: #ffffff;
   --color-card-border: #e5e5e5;
@@ -117,17 +166,17 @@
 
   --color-modal-backdrop: rgba(10, 10, 10, 0.45);
 
-  --shadow-brand-cta: 0 10px 30px rgba(22, 163, 74, 0.2);
+  --shadow-brand-cta: 0 10px 30px rgba(15, 118, 110, 0.2);
 
   --color-back-to-top-border: rgba(10, 10, 10, 0.16);
   --color-back-to-top-border-hover: var(--color-brand);
   --color-back-to-top-bg-top: #ffffff;
   --color-back-to-top-bg-bottom: #fafafa;
-  --color-back-to-top-glow: rgba(22, 163, 74, 0.14);
+  --color-back-to-top-glow: rgba(15, 118, 110, 0.14);
   --color-back-to-top-chevron: var(--color-brand);
   --color-back-to-top-text: #0a0a0a;
   --color-back-to-top-stem: #0a0a0a;
-  --color-back-to-top-focus: #16a34a;
+  --color-back-to-top-focus: #0f766e;
 }
 
 @layer components {

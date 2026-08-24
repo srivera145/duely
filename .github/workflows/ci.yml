@@ -13,7 +13,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: keel_ci
+          MYSQL_DATABASE: duely_ci
         ports:
           - 3306:3306
         options: >-
@@ -28,8 +28,8 @@ jobs:
       APP_URL: http://localhost
       DB_HOST: 127.0.0.1
       DB_PORT: 3306
-      DB_DATABASE: keel_ci
-      DB_DATABASE_TEST: keel_ci_test
+      DB_DATABASE: duely_ci
+      DB_DATABASE_TEST: duely_ci_test
       DB_USERNAME: root
       DB_PASSWORD: root
       DB_CHARSET: utf8mb4
@@ -60,7 +60,7 @@ jobs:
           $retries = 30;
           while ($retries-- > 0) {
               try {
-                  new PDO("mysql:host=127.0.0.1;port=3306;dbname=keel_ci;charset=utf8mb4", "root", "root");
+                  new PDO("mysql:host=127.0.0.1;port=3306;dbname=duely_ci;charset=utf8mb4", "root", "root");
                   exit(0);
               } catch (Throwable $e) {
                   sleep(2);
@@ -76,7 +76,7 @@ jobs:
           $pdo = new PDO("mysql:host=127.0.0.1;port=3306;charset=utf8mb4", "root", "root", [
               PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
           ]);
-          $pdo->exec("CREATE DATABASE IF NOT EXISTS keel_ci_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+          $pdo->exec("CREATE DATABASE IF NOT EXISTS duely_ci_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
           '
 
       - name: Run SQL migrations

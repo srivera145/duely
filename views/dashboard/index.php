@@ -91,7 +91,7 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
 
             <div class="rounded-xl border border-card-border bg-card p-5">
                 <p class="text-xs uppercase tracking-wide text-text-muted">Overdue</p>
-                <p class="mt-2 text-2xl font-semibold <?= (int) ($cards['overdue_count'] ?? 0) > 0 ? 'text-amber-400' : 'text-text-strong' ?>">
+                <p class="mt-2 text-2xl font-semibold <?= (int) ($cards['overdue_count'] ?? 0) > 0 ? 'text-tone-firm' : 'text-text-strong' ?>">
                     <?= (int) ($cards['overdue_count'] ?? 0) ?>
                 </p>
                 <p class="mt-1 text-xs text-text-muted">
@@ -119,7 +119,7 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
                 <p class="text-xs uppercase tracking-wide text-text-muted">
                     Recovered in <?= (int) ($cards['recovered_window_days'] ?? 30) ?> days
                 </p>
-                <p class="mt-2 text-2xl font-semibold text-emerald-400">
+                <p class="mt-2 text-2xl font-semibold text-success">
                     <?= $e($money((int) ($cards['recovered_cents'] ?? 0), (string) ($cards['outstanding_currency'] ?? 'USD'))) ?>
                 </p>
                 <p class="mt-1 text-xs text-text-muted">
@@ -193,7 +193,7 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
                     </thead>
                     <tbody id="chase-rows">
                         <?php foreach ($chases as $chase): ?>
-                        <tr class="hover:bg-table-row-hover <?= $chase['needs_attention'] ? 'bg-amber-500/5' : '' ?>"
+                        <tr class="hover:bg-table-row-hover <?= $chase['needs_attention'] ? 'bg-tone-firm-soft' : '' ?>"
                             data-chase-row="<?= (int) $chase['chase_id'] ?>"
                             data-invoice-id="<?= (int) $chase['invoice_id'] ?>">
                             <td>
@@ -212,11 +212,11 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
                             <td class="text-right whitespace-nowrap">
                                 <?php $days = (int) $chase['days_overdue']; ?>
                                 <?php if ($days > 0): ?>
-                                <span class="font-semibold <?= $days >= 30 ? 'text-red-400' : 'text-amber-400' ?>">
+                                <span class="font-semibold <?= \Keel\App\Services\ToneRamp::text(\Keel\App\Services\ToneRamp::forDaysOverdue($days)) ?>">
                                     <?= $days ?> day<?= $days === 1 ? '' : 's' ?>
                                 </span>
                                 <?php elseif ($days === 0): ?>
-                                <span class="text-amber-400">Due today</span>
+                                <span class="text-tone-polite">Due today</span>
                                 <?php else: ?>
                                 <span class="text-text-muted">in <?= abs($days) ?> days</span>
                                 <?php endif; ?>
@@ -234,8 +234,8 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
                             <td class="whitespace-nowrap" data-status-cell>
                                 <?php
                                 $statusClass = match (true) {
-                                    $chase['paused_reason'] === 'client_replied' => 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400',
-                                    $chase['needs_attention'] => 'border-amber-500/30 bg-amber-500/10 text-amber-400',
+                                    $chase['paused_reason'] === 'client_replied' => 'border-success-border bg-success-soft text-success-text',
+                                    $chase['needs_attention'] => \Keel\App\Services\ToneRamp::pill(\Keel\App\Services\ToneRamp::FIRM),
                                     default => 'border-card-border bg-surface-muted text-text-muted',
                                 };
                                 ?>

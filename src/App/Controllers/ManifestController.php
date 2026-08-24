@@ -20,8 +20,10 @@ class ManifestController extends Controller
             'short_name' => $this->shortName($appName),
             'start_url' => '/',
             'display' => 'standalone',
-            'background_color' => '#0a0a0a',
-            'theme_color' => '#0a0a0a',
+            // The navy the mark sits on, so the splash screen and the browser
+            // chrome match the icon rather than the page background.
+            'background_color' => '#0f172a',
+            'theme_color' => '#0f172a',
             'description' => 'Get paid without writing the awkward follow-up.',
             // /images/brand, not /assets — /assets is Vite's build output and
             // is emptied on every build, so an icon placed there survives

@@ -11,9 +11,9 @@
  * narrow the card gets.
  */
 $steps = [
-    ['day' => 3,  'label' => 'Polite nudge',  'state' => 'sent'],
-    ['day' => 14, 'label' => 'Firmer note',   'state' => 'sent'],
-    ['day' => 30, 'label' => 'Final message', 'state' => 'upcoming'],
+    ['day' => 3,  'label' => 'Polite nudge',  'state' => 'sent',     'tone' => 'polite'],
+    ['day' => 14, 'label' => 'Firmer note',   'state' => 'sent',     'tone' => 'firm'],
+    ['day' => 30, 'label' => 'Final message', 'state' => 'upcoming', 'tone' => 'final'],
 ];
 ?>
 <figure class="w-full max-w-md rounded-2xl border border-card-border bg-card p-5 shadow-2xl sm:p-6">
@@ -29,7 +29,7 @@ $steps = [
             <p class="truncate text-sm text-text-muted">Northwind Studio</p>
             <p class="mt-0.5 text-lg font-semibold text-text-strong">INV&#8209;2041</p>
         </div>
-        <span class="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400">
+        <span class="shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium <?= \Keel\App\Services\ToneRamp::pill(\Keel\App\Services\ToneRamp::forDaysOverdue(18)) ?>">
             18 days overdue
         </span>
     </div>
@@ -42,7 +42,7 @@ $steps = [
         <!-- Track, drawn between the first and last node centres. -->
         <div class="absolute left-[16.6667%] right-[16.6667%] top-3 h-px bg-card-border" aria-hidden="true"></div>
         <!-- Progress: as far as the last message actually sent. -->
-        <div class="absolute left-[16.6667%] top-3 h-px w-1/3 bg-brand" aria-hidden="true"></div>
+        <div class="absolute left-[16.6667%] top-3 h-px w-1/3 bg-gradient-to-r from-tone-polite to-tone-firm" aria-hidden="true"></div>
 
         <ol class="relative grid grid-cols-3 gap-1">
             <?php foreach ($steps as $step): ?>
@@ -50,7 +50,7 @@ $steps = [
             <li class="flex flex-col items-center text-center">
                 <span class="flex h-6 w-6 items-center justify-center rounded-full border-2 text-[10px] font-bold <?=
                     $sent
-                        ? 'border-brand bg-brand text-brand-contrast'
+                        ? \Keel\App\Services\ToneRamp::dotFilled($step['tone']) . ' text-brand-contrast'
                         : 'border-card-border bg-card text-text-muted' ?>">
                     <?php if ($sent): ?>
                     <svg viewBox="0 0 12 12" class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2.2"
@@ -91,7 +91,7 @@ $steps = [
     </div>
 
     <p class="mt-4 flex items-start gap-2 text-xs leading-relaxed text-text-muted">
-        <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden="true"></span>
+        <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-tone-final" aria-hidden="true"></span>
         The day 30 message is scheduled. If Ellie replies, it never gets sent.
     </p>
 </figure>

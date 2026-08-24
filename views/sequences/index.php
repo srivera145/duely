@@ -61,7 +61,7 @@ $toneLabels = [
                         <div class="flex flex-wrap items-center gap-2">
                             <h2 class="text-lg font-semibold text-text-strong"><?= $e($sequence['name']) ?></h2>
                             <?php if ($isDefault): ?>
-                            <span class="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                            <span class="rounded-full border border-success-border bg-success-soft px-2 py-0.5 text-xs font-medium text-success-text">
                                 Default
                             </span>
                             <?php endif; ?>

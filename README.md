@@ -38,6 +38,7 @@ Duely removes the discomfort by removing the decision. The reminders are already
 ## Stack
 
 - **PHP 8.2** on [Keel](https://get-keel.dev) — custom MVC SaaS framework
+  (the `Keel\` PSR-4 namespace is the underlying framework, not Duely's own code; application code lives under `Keel\App\`, framework code under `Keel\Core\`)
 - **MySQL 8** with PDO, prepared statements only
 - **Tailwind CSS** + Vite
 - **Vanilla JavaScript** (ES6+), no jQuery, no framework
@@ -52,7 +53,8 @@ Inherited from Keel: OTP auth, CSRF, multi-tenancy, background job queue, audit 
 
 ## Requirements
 
-- PHP 8.2+ with `pdo_mysql`, `imap`, `openssl`, `mbstring`, `curl`
+- PHP 8.2+ with `pdo_mysql`, `openssl`, `mbstring`, `curl`
+  (no `ext-imap` — Duely speaks IMAP over a stream socket, so it still runs where the extension has been removed)
 - MySQL 8.0+
 - Composer 2
 - Node 20+ (for Vite)
@@ -75,32 +77,41 @@ cp .env.example .env
 Fill in `.env`:
 
 ```ini
+APP_NAME="Duely"
 APP_URL=http://duely.local
 APP_ENV=local
 
 DB_HOST=127.0.0.1
-DB_NAME=duely
-DB_USER=root
-DB_PASS=
+DB_PORT=3306
+DB_DATABASE=duely
+DB_USERNAME=root
+DB_PASSWORD=
 
 # 32-byte key, base64 encoded. Generate with:
 #   php -r "echo base64_encode(random_bytes(32)).PHP_EOL;"
 APP_ENCRYPTION_KEY=
 
-STRIPE_SECRET=
+STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_SOLO=
-STRIPE_PRICE_STUDIO=
+STRIPE_PRICE_SOLO_MONTHLY=
+STRIPE_PRICE_STUDIO_MONTHLY=
+STRIPE_PRICE_FOUNDING_MONTHLY=
 
 ANTHROPIC_API_KEY=
 ```
 
-Then:
+Then run the migrations:
 
 ```bash
-php bin/migrate.php
-php bin/seed.php
+php database/migrate.php
 ```
+
+`--pretend` prints the pending migrations without applying them.
+
+There is no seed step. The default three-step sequence is written from
+`database/seeds/default_sequence.php` the first time a workspace is created, so a
+new account already has its ladder. `database/seed-activity.php` exists but only
+fills the audit log with demo rows for screenshots — it is not part of setup.
 
 Point your vhost document root at `public_html/` and add `duely.local` to your hosts file. On Windows, [Helm](https://github.com/srivera145/helm) handles the Apache/MariaDB/PHP side.
 
@@ -124,35 +135,69 @@ Jobs:
 
 | Job | Frequency | Purpose |
 |-----|-----------|---------|
-| `ProcessDueChasesJob` | every minute | Sends reminders that have come due |
-| `PollInboxesJob` | every 5 minutes | Reads replies and bounces, pauses chases |
-| `RefreshMetricsJob` | hourly | Rolls up dashboard counters |
+| `ProcessDueChasesJob` | every 60s (`--interval=` to change) | Sends reminders that have come due |
+| `PollInboxesJob` | every 300s | Reads replies and bounces, pauses chases |
+| `SendOrganizationInviteJob` | on demand | Queued through `Keel\Core\Queue`, drained on every loop |
+
+The first two run on their own timers inside the worker loop. The third is not on
+a timer — it is pushed onto Keel's `jobs` table when an invite is sent, and the
+worker drains that table each pass.
+
+Useful flags:
+
+```bash
+php bin/worker.php --once          # one pass, then exit (what the cron entry above uses)
+php bin/worker.php --chases-only   # skip the Keel job queue
+php bin/worker.php --no-poll       # skip inbox polling
+php bin/worker.php --tenant=7      # restrict the cadence tick to one workspace
+```
+
+Composer wraps the two common ones:
+
+```bash
+composer worker        # php bin/worker.php
+composer worker:once   # php bin/worker.php --once
+```
 
 ---
 
 ## Project structure
 
 ```
-app/
-  Controllers/      Route handlers
-  Models/           Tenant-scoped data access
-  Services/         ChaseScheduler, ImapPoller, MailAccountService, Crypto
-  Mail/             MailTransport interface + SmtpTransport
-  Jobs/             Queue workers
-bin/                CLI entry points (migrate, seed, worker)
+src/                  PSR-4 root, namespace Keel\
+  Core/               Framework: Router, Database, Auth, Csrf, Queue, Mailer, Env, Vite
+  App/
+    Controllers/      Route handlers
+    Models/           Tenant-scoped data access
+    Services/         ChaseScheduler, ImapPoller, MailAccountService, Crypto, PlanService
+    Mail/             MailTransport interface + SmtpTransport
+    Jobs/             ProcessDueChasesJob, PollInboxesJob, SendOrganizationInviteJob
+    Middleware/       Auth, CSRF, tenancy, throttling
+views/                Page templates — rendered by controllers, never served directly
+routes/web.php        Every URL in the application
 database/
-  migrations/
-  seeds/
-public_html/        Document root — all publicly served files
-  api/              JSON endpoints
-  dashboard/
-  invoices/
-  clients/
-  sequences/
-  settings/
-resources/          Tailwind source, JS modules
-storage/            Logs, cache, temp
+  migrate.php         The migration runner
+  migrations/         Schema, applied in filename order
+  seeds/              default_sequence.php, read when a workspace is created
+bin/worker.php        The background worker
+scripts/              setup_test_db.php and other one-off maintenance
+resources/            Tailwind source, JS modules, brand SVGs
+storage/              Logs and generated files
+tests/
+  Feature/            HTTP-level tests through the real router
+  Unit/
+  Support/            Fake SMTP and IMAP servers, recording transports
+public_html/          Document root
 ```
+
+`public_html/` holds only `index.php` (the front controller), `router.php` (for
+the PHP built-in server), the built Vite assets under `assets/`, and static files
+such as favicons and uploads. **No page templates live under the document root** —
+every URL is matched in `routes/web.php` and rendered from `views/`.
+
+That distinction matters when adding an endpoint. Keel's rewrite rule serves any
+real file directly and skips the router, so a `.php` file dropped into
+`public_html/` bypasses auth, CSRF, and tenant scoping entirely. Add a route.
 
 ---
 
@@ -205,13 +250,33 @@ Out-of-office and other auto-replies are detected and **do not** pause the seque
 
 ## Testing
 
+The suite runs against a **separate database**, never your development one.
+`.env.testing` holds its credentials, and `DB_DATABASE_TEST` must contain `test`
+or `ci` — `scripts/setup_test_db.php` refuses to run otherwise, which is what
+stops a stray test run from truncating real data.
+
+`.env.testing` is committed with working defaults, so a fresh checkout needs no
+extra file — change `DB_USERNAME` / `DB_PASSWORD` only if yours differ from the
+local root defaults.
+
 ```bash
-composer test           # unit + integration
-composer test:cadence   # scheduler edge cases
-composer lint
+composer test:db        # create the test database and bring it up to date
+composer test:all       # the whole suite
+composer test:feature   # HTTP-level tests only
 ```
 
-The cadence suite covers the cases that matter: an invoice already overdue at import, a reply landing between scheduling and send, a worker killed mid-send, and a duplicate poll cycle.
+`test:db` is idempotent and runs automatically as part of `test:feature` and
+`test:all`, so day to day you only need one of the last two. To run a single
+file or filter, call PHPUnit directly once the database exists:
+
+```bash
+vendor/bin/phpunit --filter CadenceEngineFeatureTest
+```
+
+The feature tests cover the cases that matter: an invoice already overdue at
+import, a reply landing between scheduling and send, a worker killed mid-send,
+and a duplicate poll cycle. `tests/Support/` contains fake SMTP and IMAP servers
+so those paths are exercised against real protocol traffic rather than mocks.
 
 ---
 

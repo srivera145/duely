@@ -1,0 +1,103 @@
+Duely
+Copyright © 2026 EchoDial LLC. All rights reserved.
+
+Duely is proprietary software (see LICENSE). It incorporates the third-party
+components listed below, each of which remains under its own licence. Nothing in
+Duely's licence restricts the rights those licences grant, and the notices below
+must travel with any distribution of Duely.
+
+Licence texts for the PHP components are in vendor/<package>/LICENSE.
+
+
+FRAMEWORK
+---------
+
+Keel — https://get-keel.dev
+    MIT License. Copyright (c) 2026 Santos Rivera contributors.
+
+    Keel is the PHP framework Duely is built on. Its source is vendored
+    directly into src/Core/ rather than installed through Composer, and the
+    `Keel\` PSR-4 namespace covers both it and Duely's own application code in
+    src/App/. Keel remains MIT licensed; making Duely proprietary does not and
+    cannot change that.
+
+
+PHP RUNTIME DEPENDENCIES
+------------------------
+
+phpmailer/phpmailer 6.12.0                              LGPL-2.1-only
+    https://github.com/PHPMailer/PHPMailer
+    Used to deliver reminders over each user's own SMTP server.
+
+    Note: this is the one dependency whose licence carries obligations beyond
+    attribution. LGPL-2.1 permits use by a proprietary application that links
+    to the library, provided recipients can obtain the library's source and
+    replace it with a modified version. Duely uses PHPMailer as an unmodified
+    Composer dependency, which is the arrangement the licence contemplates. Do
+    not patch it in place — fork it separately, or subclass, if a change is
+    ever needed.
+
+stripe/stripe-php 20.3.1                                MIT
+    https://github.com/stripe/stripe-php
+    Subscription billing and webhook signature verification.
+
+vlucas/phpdotenv 5.6.4                                  BSD-3-Clause
+    https://github.com/vlucas/phpdotenv
+    Reads configuration from .env.
+
+graham-campbell/result-type 1.1.4                       MIT
+    https://github.com/GrahamCampbell/Result-Type
+    Transitive dependency of phpdotenv.
+
+phpoption/phpoption 1.9.5                               Apache-2.0
+    https://github.com/schmittjoh/php-option
+    Transitive dependency of phpdotenv.
+
+symfony/polyfill-ctype 1.37.0                           MIT
+symfony/polyfill-mbstring 1.38.2                        MIT
+symfony/polyfill-php80 1.37.0                           MIT
+    https://github.com/symfony/polyfill
+    Transitive dependencies of phpdotenv and PHPMailer.
+
+
+FRONT-END BUILD DEPENDENCIES
+----------------------------
+
+These are build-time tools. Their output — the compiled CSS and JavaScript in
+public_html/assets/ — is shipped, so they are listed here as well.
+
+tailwindcss 3.x                                         MIT
+    https://github.com/tailwindlabs/tailwindcss
+
+vite 6.x                                                MIT
+    https://github.com/vitejs/vite
+
+postcss 8.x                                             MIT
+    https://github.com/postcss/postcss
+
+autoprefixer 10.x                                       MIT
+    https://github.com/postcss/autoprefixer
+
+
+DEVELOPMENT DEPENDENCIES
+------------------------
+
+Not shipped with the application; listed for completeness.
+
+phpunit/phpunit 11.5.x and its sebastian/*, phpunit/*, phar-io/* dependencies
+                                                        BSD-3-Clause
+myclabs/deep-copy                                       MIT
+nikic/php-parser                                        BSD-3-Clause
+staabm/side-effects-detector                            MIT
+
+
+FONTS AND BRAND ASSETS
+----------------------
+
+Duely's brand assets — the mark, wordmark, and lockups in
+resources/images/brand/ — are proprietary to EchoDial LLC and are not covered by
+any of the licences above.
+
+The wordmark and tagline in duely-logo.svg and duely-logo-dark.svg are stored as
+vector outlines rather than live text, so no font file is redistributed with
+them.

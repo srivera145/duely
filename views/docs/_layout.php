@@ -60,8 +60,8 @@ $hasDockerCompose = $hasDockerCompose ?? false;
         <header class="docs-nav mb-6 rounded-3xl p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <a href="/" class="inline-flex items-center gap-3 rounded-full">
-                    <img src="/images/brand/keel-light.png" alt="Keel logo" class="logo-dark-mode h-10 object-contain" loading="eager" decoding="async">
-                    <img src="/images/brand/keel.png" alt="Keel logo" class="logo-light-mode h-10 object-contain" loading="eager" decoding="async">
+                    <img src="/images/brand/duely-mark.svg" alt="" aria-hidden="true" class="h-4 w-auto" loading="eager" decoding="async">
+                    <span class="text-lg font-semibold">Duely</span>
                 </a>
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="button" class="theme-toggle-button" data-theme-toggle>

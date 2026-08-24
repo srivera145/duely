@@ -3,6 +3,10 @@ export default {
   content: [
     './views/**/*.php',
     './resources/js/**/*.js',
+    // Class names also live in PHP that builds them (ToneRamp), and the
+    // scanner only finds what it is pointed at -- a utility it never sees is a
+    // utility it purges.
+    './src/**/*.php',
   ],
   theme: {
     extend: {
@@ -34,6 +38,24 @@ export default {
           soft: 'var(--color-success-soft)',
           border: 'var(--color-success-border)',
           text: 'var(--color-success-text)',
+        },
+        // The escalation ramp: one group per rung of the tone ladder.
+        tone: {
+          polite: {
+            DEFAULT: 'var(--color-tone-polite)',
+            soft: 'var(--color-tone-polite-soft)',
+            border: 'var(--color-tone-polite-border)',
+          },
+          firm: {
+            DEFAULT: 'var(--color-tone-firm)',
+            soft: 'var(--color-tone-firm-soft)',
+            border: 'var(--color-tone-firm-border)',
+          },
+          final: {
+            DEFAULT: 'var(--color-tone-final)',
+            soft: 'var(--color-tone-final-soft)',
+            border: 'var(--color-tone-final-border)',
+          },
         },
         card: {
           DEFAULT: 'var(--color-card-bg)',

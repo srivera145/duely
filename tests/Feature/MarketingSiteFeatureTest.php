@@ -83,11 +83,39 @@ class MarketingSiteFeatureTest extends TestCase
     {
         $marketing = $this->get('/')->body;
 
+        // Keel serves from the Vite dev server whenever public_html/hot exists,
+        // so the asset URLs differ between a built tree and a machine with
+        // `npm run dev` running. The claim being tested is the same either way:
+        // the public pages pull the marketing entry and never the application
+        // bundle. Asserting the built filenames alone made this fail for the
+        // sole reason that somebody had a dev server open.
+        $isHot = file_exists(dirname(__DIR__, 2) . '/public_html/hot');
+
+        if ($isHot) {
+            self::assertStringContainsString('resources/js/marketing.js', $marketing);
+            self::assertStringNotContainsString(
+                'resources/js/app.js',
+                $marketing,
+                'the landing page must not ship the application bundle'
+            );
+
+            return;
+        }
+
         self::assertMatchesRegularExpression('#/assets/assets/marketing-[^"]+\.js#', $marketing);
         self::assertDoesNotMatchRegularExpression(
             '#/assets/assets/app-[A-Za-z0-9_-]+\.js#',
             $marketing,
             'the landing page must not ship the application bundle'
+        );
+
+        // And the stylesheet has to arrive. Vite hoists shared modules into a
+        // common chunk and moves the CSS with them, so an entry-only reading of
+        // the manifest silently emits no stylesheet at all.
+        self::assertMatchesRegularExpression(
+            '#<link rel="stylesheet" href="/assets/assets/[^"]+\.css">#',
+            $marketing,
+            'the page must link a stylesheet however Vite chunked it'
         );
     }
 
