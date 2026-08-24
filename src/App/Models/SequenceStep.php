@@ -128,7 +128,11 @@ class SequenceStep extends BaseModel
     public static function reorder(int $tenantId, int $sequenceId, array $orderedStepIds): bool
     {
         $connection = \Keel\Core\Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             $park = $connection->prepare(
@@ -148,11 +152,15 @@ class SequenceStep extends BaseModel
                 $position++;
             }
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
 
             return true;
         } catch (\Throwable $exception) {
-            $connection->rollBack();
+            if ($openedTransaction && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
             throw $exception;
         }
     }

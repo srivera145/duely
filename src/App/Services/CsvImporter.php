@@ -260,7 +260,11 @@ class CsvImporter
         $connection = Database::connection();
 
         foreach ($validation['valid'] as $record) {
+            $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
             $connection->beginTransaction();
+        }
 
             try {
                 $existingClient = Client::findByEmail($tenantId, $record['client_email']);
@@ -304,9 +308,13 @@ class CsvImporter
                     $created++;
                 }
 
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
             } catch (Throwable $exception) {
-                $connection->rollBack();
+                if ($openedTransaction && $connection->inTransaction()) {
+                    $connection->rollBack();
+                }
 
                 $errors[] = [
                     'line' => $record['line'],

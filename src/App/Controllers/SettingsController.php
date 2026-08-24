@@ -93,6 +93,20 @@ class SettingsController extends Controller
             $this->json(['error' => $validation], 422);
         }
 
+        // Adding a mailbox is plan-limited. An existing account being edited
+        // is not a new one, so the gate only applies to the first save.
+        if (\Keel\App\Models\EmailAccount::findByEmail($tenantId, (string) $input['from_email']) === null) {
+            $allowance = (new \Keel\App\Services\PlanService())
+                ->canUseFeature($tenantId, \Keel\App\Services\PlanService::FEATURE_EMAIL_ACCOUNT);
+
+            if (!$allowance['allowed']) {
+                $this->json([
+                    'error' => $allowance['reason'],
+                    'upgrade_to' => $allowance['upgrade_to'],
+                ], 402);
+            }
+        }
+
         $result = $this->accounts->save($tenantId, (int) $user['id'], $input);
 
         if (!$result['saved']) {

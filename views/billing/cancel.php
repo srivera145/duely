@@ -3,13 +3,17 @@
 <head>
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
-    <div class="card w-full max-w-xl p-8 text-center">
-        <p class="text-sm text-gray-500">Stripe Checkout</p>
-        <h1 class="mt-2 text-3xl font-bold text-gray-900">Checkout cancelled</h1>
-        <p class="mt-4 text-sm leading-6 text-gray-600">No subscription changes were made locally. You can go back to billing whenever you want to try again.</p>
-        <div class="mt-8">
-            <a href="/billing/upgrade" class="btn btn-secondary btn-md">Return to billing</a>
+<body class="flex min-h-screen items-center justify-center bg-surface px-4 text-text">
+    <div class="w-full max-w-xl rounded-xl border border-card-border bg-card p-8 text-center">
+        <p class="text-sm text-text-muted">Billing</p>
+        <h1 class="mt-2 text-3xl font-bold text-text-strong">Nothing was charged</h1>
+        <p class="mt-4 text-sm leading-6 text-text-muted">
+            You left checkout before it finished, so your plan is exactly as it was.
+            Everything you have set up is still here.
+        </p>
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <a href="/billing/upgrade" class="btn btn-primary btn-md">Back to the plans</a>
+            <a href="/dashboard" class="btn btn-secondary border border-card-border btn-md">Go to the dashboard</a>
         </div>
     </div>
 </body>

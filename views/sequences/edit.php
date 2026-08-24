@@ -11,6 +11,8 @@ $tags = $tags ?? [];
 $sampleContext = $sampleContext ?? [];
 $activeChases = $activeChases ?? 0;
 $steps = $sequence['steps'] ?? [];
+$assistAvailable = $assistAvailable ?? false;
+$assistAllowance = $assistAllowance ?? ['used' => 0, 'limit' => 0];
 
 $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 
@@ -109,6 +111,86 @@ $tones = [
                 </div>
             </section>
 
+            <?php if ($assistAvailable): ?>
+            <!-- Writing assistant. Every draft is a proposal; nothing is saved
+                 until the user accepts it and saves the sequence as usual. -->
+            <section id="tone-assist" class="rounded-xl border border-card-border bg-card p-6">
+                <div class="flex flex-wrap items-baseline justify-between gap-2">
+                    <h2 class="text-lg font-semibold text-text-strong">Writing help</h2>
+                    <span class="text-xs text-text-muted" data-assist-allowance>
+                        <?= (int) $assistAllowance['used'] ?> of <?= (int) $assistAllowance['limit'] ?> writing requests used today
+                    </span>
+                </div>
+                <p class="mt-1 text-sm text-text-muted">
+                    Duely can redraft a reminder or write you a whole ladder. Your client details never
+                    leave the app &mdash; only the merge tags are sent.
+                </p>
+
+                <div class="mt-5 space-y-4">
+                    <div>
+                        <label for="assist-description" class="block text-sm font-medium text-text">
+                            Draft a whole ladder
+                        </label>
+                        <textarea id="assist-description" data-assist-description rows="3"
+                                  placeholder="I photograph weddings. Most clients are couples paying personally, and I'd rather keep things warm even when they're late."
+                                  class="form-input mt-1 w-full text-sm"></textarea>
+                        <div class="mt-2 flex flex-wrap items-center gap-3">
+                            <button type="button" data-assist-sequence class="btn btn-sm btn-primary">
+                                Draft three reminders
+                            </button>
+                            <span class="text-xs text-text-muted">Replaces all steps below, once you accept.</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="assist-instruction" class="block text-sm font-medium text-text">
+                            Anything specific? (optional)
+                        </label>
+                        <input type="text" id="assist-instruction" data-assist-instruction
+                               placeholder="Shorter, and mention the payment link"
+                               class="form-input mt-1 w-full text-sm">
+                        <p class="mt-1 text-xs text-text-muted">Applies to the per-step rewrite buttons.</p>
+                    </div>
+                </div>
+
+                <p data-assist-redactions class="mt-4 hidden rounded-lg border border-card-border bg-surface-muted p-3 text-xs text-text-muted"></p>
+                <div data-assist-error class="mt-4 hidden rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-text"></div>
+                <p data-assist-unsaved class="mt-4 hidden text-sm text-amber-400">
+                    Draft loaded into the editor. Nothing is saved until you press Save sequence.
+                </p>
+            </section>
+
+            <!-- Proposed diff. The user accepts or discards; nothing auto-applies. -->
+            <section id="assist-proposal" class="hidden rounded-xl border border-brand/40 bg-card p-6">
+                <h2 class="text-lg font-semibold text-text-strong" data-proposal-title></h2>
+                <p class="mt-1 text-sm text-text-muted">
+                    Nothing has been changed yet. Accept to load this into the editor, or discard it.
+                </p>
+
+                <div data-proposal-single class="mt-5 space-y-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-text-muted">Subject</p>
+                        <p class="mt-1 text-sm text-text" data-proposal-subject></p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wide text-text-muted">Message</p>
+                        <pre class="mt-1 whitespace-pre-wrap font-sans text-sm text-text" data-proposal-body></pre>
+                    </div>
+                </div>
+
+                <div data-proposal-steps class="mt-5 hidden space-y-3"></div>
+
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <button type="button" data-proposal-accept class="btn btn-sm btn-primary">
+                        Accept into the editor
+                    </button>
+                    <button type="button" data-proposal-discard class="btn btn-sm border border-card-border">
+                        Discard
+                    </button>
+                </div>
+            </section>
+            <?php endif; ?>
+
             <!-- Steps -->
             <div id="steps" class="space-y-6">
                 <?php foreach ($steps as $index => $step): ?>
@@ -162,6 +244,13 @@ $tones = [
                             </div>
 
                             <div data-tag-warning class="hidden rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-400"></div>
+
+                            <?php if ($assistAvailable): ?>
+                            <button type="button" data-assist-rewrite
+                                    class="btn btn-sm border border-card-border text-xs">
+                                Rewrite this with Duely
+                            </button>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Live preview -->

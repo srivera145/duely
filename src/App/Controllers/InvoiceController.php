@@ -81,6 +81,29 @@ class InvoiceController extends Controller
     }
 
     /**
+     * GET /invoices/{id}/timeline — everything that has happened to one invoice.
+     */
+    public function show(Request $request, string $id): void
+    {
+        $tenantId = TenantContext::requireId();
+        $timeline = (new \Keel\App\Services\InvoiceTimeline())->build($tenantId, (int) $id);
+
+        if ($timeline === null) {
+            $this->notFound($request, 'That invoice does not exist.');
+        }
+
+        $this->view('invoices.show', [
+            'title' => 'Invoice ' . $timeline['invoice']['number'] . ' - Duely',
+            'metaDescription' => 'Every reminder sent and every reply received for this invoice.',
+            'invoice' => $timeline['invoice'],
+            'chase' => $timeline['chase'],
+            'rail' => $timeline['rail'],
+            'events' => $timeline['events'],
+            'sequences' => \Keel\App\Models\Sequence::active($tenantId),
+        ]);
+    }
+
+    /**
      * GET /api/invoices — the list as JSON, for live filtering.
      */
     public function listJson(Request $request): void

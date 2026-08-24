@@ -197,7 +197,11 @@ class MailAccountService
         ];
 
         $connection = Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             if ($existing !== null) {
@@ -208,9 +212,13 @@ class MailAccountService
                 $accountId = EmailAccount::create($tenantId, $attributes);
             }
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
         } catch (Throwable $exception) {
-            $connection->rollBack();
+            if ($openedTransaction && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
             throw $exception;
         }
 

@@ -32,6 +32,7 @@ class Invoice extends BaseModel
             'due_date',
             'status',
             'paid_at',
+            'paid_source',
             'payment_url',
             'external_ref',
             'notes',

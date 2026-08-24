@@ -50,12 +50,17 @@ class SequenceController extends Controller
             $this->notFound($request);
         }
 
+        $assist = new \Keel\App\Services\ToneAssistService();
+
         $this->view('sequences.edit', [
             'title' => $sequence['name'] . ' - Duely',
             'sequence' => $sequence,
             'tags' => TemplateRenderer::tags(),
             'sampleContext' => TemplateRenderer::sampleContext($this->senderName()),
             'activeChases' => Sequence::activeChaseCount($tenantId, (int) $sequence['id']),
+            // The writing assistant only appears when an API key is configured.
+            'assistAvailable' => \Keel\App\Services\ToneAssistService::isConfigured(),
+            'assistAllowance' => $assist->allowance($tenantId),
         ]);
     }
 
@@ -224,7 +229,11 @@ class SequenceController extends Controller
     private function syncSteps(int $tenantId, int $sequenceId, array $steps): void
     {
         $connection = \Keel\Core\Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             foreach (SequenceStep::forSequence($tenantId, $sequenceId) as $existing) {
@@ -246,11 +255,13 @@ class SequenceController extends Controller
                 $position++;
             }
 
-            $connection->commit();
-        } catch (\Throwable $exception) {
-            if ($connection->inTransaction()) {
-                $connection->rollBack();
+            if ($openedTransaction) {
+                $connection->commit();
             }
+        } catch (\Throwable $exception) {
+            if ($openedTransaction && $connection->inTransaction()) {
+                    $connection->rollBack();
+                }
 
             throw $exception;
         }

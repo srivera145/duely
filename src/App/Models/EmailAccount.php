@@ -177,7 +177,11 @@ class EmailAccount extends BaseModel
     public static function makeDefault(int $tenantId, int $id): bool
     {
         $connection = \Keel\Core\Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             $demote = $connection->prepare(
@@ -191,11 +195,15 @@ class EmailAccount extends BaseModel
             $promote->execute([$tenantId, $id]);
             $promoted = $promote->rowCount() > 0;
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
 
             return $promoted;
         } catch (\Throwable $exception) {
-            $connection->rollBack();
+            if ($openedTransaction && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
             throw $exception;
         }
     }

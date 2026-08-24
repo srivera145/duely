@@ -18,14 +18,25 @@ class BillingService
 {
     private ?StripeClient $stripe = null;
 
-    public function createCheckoutSession(array $user, string $priceId): CheckoutSession
+    /**
+     * @param array<string, string> $metadata extra metadata to carry through to
+     *        the webhook — Duely puts the workspace id here, because the webhook
+     *        is where entitlement is granted and it must not have to guess who
+     *        the checkout belonged to.
+     */
+    public function createCheckoutSession(array $user, string $priceId, array $metadata = []): CheckoutSession
     {
         if ($priceId === '') {
             throw new \RuntimeException('Stripe price ID is required.');
         }
 
         $customerId = $this->ensureCustomerId($user);
-        $plan = $this->resolvePlanFromPriceId($priceId);
+        $plan = $metadata['plan'] ?? $this->resolvePlanFromPriceId($priceId);
+
+        $sessionMetadata = array_merge([
+            'user_id' => (string) $user['id'],
+            'plan' => $plan,
+        ], $metadata);
 
         return $this->stripe()->checkout->sessions->create([
             'mode' => 'subscription',
@@ -37,15 +48,11 @@ class BillingService
                 'price' => $priceId,
                 'quantity' => 1,
             ]],
-            'metadata' => [
-                'user_id' => (string) $user['id'],
-                'plan' => $plan,
-            ],
+            'metadata' => $sessionMetadata,
+            // Repeated on the subscription so later customer.subscription.*
+            // events can be attributed without a lookup.
             'subscription_data' => [
-                'metadata' => [
-                    'user_id' => (string) $user['id'],
-                    'plan' => $plan,
-                ],
+                'metadata' => $sessionMetadata,
             ],
         ]);
     }

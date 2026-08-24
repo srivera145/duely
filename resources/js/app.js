@@ -1,9 +1,12 @@
 import '../css/app.css';
+import { initChaseControls } from './components/chase-controls';
 import { initEmailAccount } from './components/email-account';
 import { initImportWizard } from './components/import-wizard';
 import { initModal } from './components/modal';
+import { initOnboarding } from './components/onboarding';
 import { initRecords } from './components/records';
 import { initSequenceEditor } from './components/sequence-editor';
+import { initToneAssist } from './components/tone-assist';
 import { initTabs } from './components/tabs';
 import { initThemeToggle } from './components/theme-toggle';
 
@@ -126,6 +129,9 @@ const initSharedUi = () => {
 	initImportWizard();
 	initRecords();
 	initSequenceEditor();
+	initChaseControls();
+	initToneAssist();
+	initOnboarding();
 };
 
 if (document.readyState === 'loading') {

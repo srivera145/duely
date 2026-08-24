@@ -278,13 +278,19 @@ class Chase extends BaseModel
         int $startPosition = 0
     ): int {
         $connection = Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             $existing = static::forInvoice($tenantId, $invoiceId);
 
             if ($existing !== null) {
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return (int) $existing['id'];
             }
@@ -299,11 +305,15 @@ class Chase extends BaseModel
                 'started_at' => Clock::toDatabase(Clock::now()),
             ]);
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
 
             return $chaseId;
         } catch (\Throwable $exception) {
-            $connection->rollBack();
+            if ($openedTransaction && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
             throw $exception;
         }
     }

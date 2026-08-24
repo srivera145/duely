@@ -33,7 +33,11 @@ class SequenceSeeder
 
         $definition = self::definition();
         $connection = Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             $sequenceId = Sequence::create($tenantId, [
@@ -59,13 +63,15 @@ class SequenceSeeder
                 ]);
             }
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
 
             return $sequenceId;
         } catch (Throwable $exception) {
-            if ($connection->inTransaction()) {
-                $connection->rollBack();
-            }
+            if ($openedTransaction && $connection->inTransaction()) {
+                    $connection->rollBack();
+                }
 
             throw $exception;
         }

@@ -63,6 +63,53 @@ class AiService
         return $this->extractText($response);
     }
 
+    /**
+     * Complete, and report what it cost.
+     *
+     * The plain complete() throws the usage block away, which makes per-tenant
+     * cost tracking impossible. This returns the text alongside the token
+     * counts the API reported.
+     *
+     * @return array{
+     *     text:string, model:string,
+     *     input_tokens:int, output_tokens:int,
+     *     cache_read_tokens:int, cache_write_tokens:int
+     * }
+     */
+    public function completeWithUsage(string $prompt, array $options = []): array
+    {
+        $payload = [
+            'model' => $this->model(),
+            'max_tokens' => $this->maxTokens($options),
+            'messages' => [[
+                'role' => 'user',
+                'content' => $prompt,
+            ]],
+        ];
+
+        if (isset($options['system'])) {
+            $payload['system'] = (string) $options['system'];
+        }
+
+        // effort tunes how much reasoning the model spends. Short copy does not
+        // need the default, and this feature is rate limited per tenant.
+        if (isset($options['effort'])) {
+            $payload['output_config'] = ['effort' => (string) $options['effort']];
+        }
+
+        $response = $this->request($payload);
+        $usage = $response['usage'] ?? [];
+
+        return [
+            'text' => $this->extractText($response),
+            'model' => (string) ($response['model'] ?? $payload['model']),
+            'input_tokens' => (int) ($usage['input_tokens'] ?? 0),
+            'output_tokens' => (int) ($usage['output_tokens'] ?? 0),
+            'cache_read_tokens' => (int) ($usage['cache_read_input_tokens'] ?? 0),
+            'cache_write_tokens' => (int) ($usage['cache_creation_input_tokens'] ?? 0),
+        ];
+    }
+
     public function completeJson(string $prompt, array $options = []): array
     {
         $jsonPrompt = $prompt . "\n\nReturn only valid JSON. Do not include markdown fences or commentary.";
@@ -143,8 +190,10 @@ class AiService
 
     private function model(): string
     {
-        // Check this default against Anthropic's current model lineup before shipping.
-        return trim((string) Env::get('ANTHROPIC_MODEL', 'claude-sonnet-4-5'));
+        // Claude Opus 5 is the current default model. Override per install with
+        // ANTHROPIC_MODEL; use an exact id from Anthropic's lineup, never a
+        // date-suffixed variant.
+        return trim((string) Env::get('ANTHROPIC_MODEL', 'claude-opus-5'));
     }
 
     private function maxTokens(array $options): int

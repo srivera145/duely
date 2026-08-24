@@ -1,330 +1,238 @@
-<picture>
-   <source media="(prefers-color-scheme: dark)" srcset="resources/images/brand/keel-light.png">
-   <img src="resources/images/brand/keel.png" alt="Keel - open-source PHP starter kit">
-</picture>
+<div align="center">
 
-# Keel
+# Duely
 
-Santos Rivera's PHP starter kit. A consistent foundation for new SaaS projects: custom MVC, OTP + Magic Link auth (no passwords, ever), a mailer, and Composer + npm/Vite wired together.
+**Get paid without writing the awkward follow-up.**
+
+Polite, escalating invoice reminders that go out *as you*, from your own inbox.
+For freelancers and small studios who track invoices in a spreadsheet, not an accounting suite.
+
+</div>
+
+---
+
+## What it does
+
+You add an invoice and a due date. Duely watches the clock.
+
+| Day | Tone | What goes out |
+|-----|------|---------------|
+| +3 | Polite | A light nudge. "Just floating this back to the top of your inbox." |
+| +14 | Firm | Direct, factual, still friendly. |
+| +30 | Final | Firm and unambiguous. Never hostile. |
+
+Every message is sent through **your** mail server, from **your** address, threaded into a single conversation so it reads like you wrote it. Duely watches your inbox for a reply and stops the sequence the moment your client responds — or the moment you mark the invoice paid.
+
+No accounting suite. No client portal. No "sent via" footer.
+
+---
+
+## Why it exists
+
+Chasing money is the worst part of freelancing. Not because it's hard, but because it's uncomfortable. Most people delay the follow-up for weeks, then write something stiff and over-apologetic.
+
+Duely removes the discomfort by removing the decision. The reminders are already written, already scheduled, and already in your voice.
+
+---
 
 ## Stack
 
-- PHP 8.2, custom MVC (no framework dependency)
-- MySQL via PDO
-- Tailwind CSS + Vite (npm)
-- Vanilla JS
-- PHPMailer (SMTP + log driver)
-- Stripe Checkout + Billing Portal for subscription billing
-- Local/private file storage abstraction
-- Anthropic API wrapper for text, JSON, and image-assisted prompts
-- DB-backed queue worker for async jobs
-- Optional one-organization-per-user multi-tenancy layer
-- OTP and/or Magic Link auth — toggle in `.env`
-- CSRF protection, request throttling, and branded error pages
+- **PHP 8.2** on [Keel](https://get-keel.dev) — custom MVC SaaS framework
+- **MySQL 8** with PDO, prepared statements only
+- **Tailwind CSS** + Vite
+- **Vanilla JavaScript** (ES6+), no jQuery, no framework
+- **PHPMailer** over user-supplied SMTP
+- **IMAP** for reply and bounce detection
+- **Stripe** for subscriptions
+- **Claude API** for optional tone assist
 
-## Directory structure
+Inherited from Keel: OTP auth, CSRF, multi-tenancy, background job queue, audit log, API tokens, PWA, light/dark theme, self-maintaining sitemap and robots.
 
-```
-public_html/       Web root. Only this folder is exposed by the server.
-  index.php         Front controller — every request enters here.
-  assets/           Built CSS/JS output (npm run build). Git-ignored.
-  uploads/           User-uploaded files.
-src/
-  Core/              Framework internals: Router, Request, Response, Database,
-                                 Session, View, Mailer, Vite, Env, Controller, Middleware,
-                                 Csrf, RateLimiter, ErrorHandler, Storage.
-  App/
-    Controllers/      Your route handlers.
-    Middleware/        Route guards (AuthMiddleware included).
-    Models/            Thin data-access classes.
-      Services/          Business logic (OtpService, MagicLinkService, AiService).
-routes/
-  web.php            All routes are registered here.
-views/               Plain PHP templates. No templating engine —
-                      views/partials/head.php + one file per page, same as
-                      the pattern you've used across keel/Mise/ShiftDeduct.
-resources/
-  css/app.css        Tailwind entry point.
-  js/app.js           JS entry point.
-database/
-   migrations/         Plain .sql files, run with `php database/migrate.php`.
-   migrate.php         CLI runner for pending SQL migrations.
-   queue-work.php      CLI worker for queued jobs.
-storage/logs/         App logs (error_log target if you wire one in).
-storage/app/          Private uploaded files, not web-accessible.
-```
+---
+
+## Requirements
+
+- PHP 8.2+ with `pdo_mysql`, `imap`, `openssl`, `mbstring`, `curl`
+- MySQL 8.0+
+- Composer 2
+- Node 20+ (for Vite)
+- A cron entry or systemd timer for the worker
+
+---
 
 ## Setup
 
-1. **Install dependencies**
-   ```
-   composer install
-   npm install
-   ```
-
-2. **Environment**
-   ```
-   cp .env.example .env
-   ```
-   Fill in `DB_*`, `MAIL_*`, and set `APP_URL` to wherever this is served locally (e.g. `http://keel.local` following your existing local-dev pattern, or `http://localhost:8000`).
-
-   Fastest local auth smoke test without SMTP setup:
-
-   ```
-   MAIL_MAILER=log
-   ```
-
-   Then request an OTP or magic link and read `storage/logs/mail.log` for the code or URL.
-
-   Quick troubleshooting for `MAIL_MAILER=log`:
-
-   ```text
-   [2026-07-10 02:58:48] MAIL_MAILER=log
-   To: you@example.com <you@example.com>
-   Subject: Your verification code
-
-   Text Body:
-   Keel App verification code
-   Use this code to sign in. It expires in 10 minutes.
-   315638
-   ```
-
-   For OTP, use the 6-digit code in `Text Body`.
-   For magic-link auth, open the `/auth/magic?token=...&email=...` URL logged in the same entry.
-
-3. **Database**
-   ```
-   php database/migrate.php
-   ```
-   This creates the configured database automatically if it does not exist yet, runs any pending SQL files in `database/migrations/`, records them in a `migrations` table, and creates `users`, `auth_tokens`, and any later starter-kit tables such as `subscriptions`.
-   Your `DB_USERNAME` must have permission to create databases on the target MySQL server.
-
-   Security-related tables such as `rate_limits` are created by later migrations the same way.
-
-4. **File storage + AI config**
-   Add these to `.env` for upload handling and Anthropic-powered features:
-
-   ```
-   FILESYSTEM_DISK=local
-   FILESYSTEM_MAX_UPLOAD_MB=10
-   FILESYSTEM_ALLOWED_EXTENSIONS=pdf,jpg,jpeg,png,heic
-   ANTHROPIC_API_KEY=
-   ANTHROPIC_MODEL=claude-sonnet-4-5
-   ```
-
-   Public uploads are stored under `public_html/uploads/`. Private uploads are stored under `storage/app/` and are only served through authenticated controller checks.
-
-5. **Optional multi-tenancy**
-
-   ```env
-   MULTI_TENANCY_ENABLED=false
-   ```
-
-   Leave this `false` and Keel behaves exactly as it does today. Set it to `true` for one organization per user, invite-based teammate onboarding, org admin settings, and a platform-level super-admin area.
-
-6. **Stripe billing (optional, but included in the kit)**
-   Add these to `.env` when you want to test or ship subscription billing:
-
-   ```
-   STRIPE_SECRET_KEY=
-   STRIPE_PUBLISHABLE_KEY=
-   STRIPE_WEBHOOK_SECRET=
-   STRIPE_PRICE_PRO_MONTHLY=
-   ```
-
-   For local webhook testing, use the Stripe CLI:
-
-   ```
-   stripe listen --forward-to keel.local/webhooks/stripe
-   ```
-
-   Stripe prints a temporary signing secret. Put that value into `STRIPE_WEBHOOK_SECRET` locally instead of using a live dashboard secret.
-
-7. **Choose your auth method**
-   In `.env`:
-
-   ```
-   AUTH_METHOD=otp          # OTP only
-   AUTH_METHOD=magic_link   # Magic link only
-   AUTH_METHOD=both         # Both, with a tab switcher on the login page
-   ```
-
-8. **Local vhost (XAMPP), same pattern as keel.local**
-
-   a. Copy this project into `C:\xampp\htdocs\keel` (so the front controller lives at `C:\xampp\htdocs\keel\public_html\index.php`).
-
-   b. Add to `C:\Windows\System32\drivers\etc\hosts`:
-      ```
-      127.0.0.1 keel.local
-      ```
-
-   c. Add to `C:\xampp\apache\conf\extra\httpd-vhosts.conf`:
-      ```
-      <VirtualHost *:80>
-          ServerName keel.local
-          DocumentRoot "C:/xampp/htdocs/keel/public_html"
-          <Directory "C:/xampp/htdocs/keel/public_html">
-              Options Indexes FollowSymLinks
-              AllowOverride All
-              Require all granted
-          </Directory>
-      </VirtualHost>
-      ```
-      `AllowOverride All` is required — without it, `public_html/.htaccess` is ignored and every route except `/` 404s.
-
-   d. Confirm `httpd-vhosts.conf` is loaded — in `C:\xampp\apache\conf\httpd.conf` there should be an uncommented `Include conf/extra/httpd-vhosts.conf`. If you already have `keel.local` working, this is already done.
-
-   e. Restart Apache from the XAMPP control panel.
-
-   f. Set `APP_URL=http://keel.local` in `.env`.
-
-   `public_html/.htaccess` is already in the project — it rewrites any request that isn't a real file to `index.php`, which is what lets `/login`, `/dashboard`, etc. resolve through the router instead of 404ing.
-
-9. **Run the asset pipeline**
-   ```
-   npm run dev
-   ```
-   This starts the Vite dev server and writes `public_html/hot`, which the PHP `Vite` helper detects automatically to serve unbuilt assets with HMR — no code change needed to switch between dev and build. Stop the dev server and it cleans that file up on its own. Apache serves the PHP as usual at `http://keel.local`; Vite only serves the JS/CSS.
-
-   For production: `npm run build`, then just visit `http://keel.local` — the `Vite` helper reads `public_html/assets/.vite/manifest.json` automatically. No dev server needed.
-
-## Optional Docker setup (for contributors not using XAMPP)
-
-XAMPP + `keel.local` remains the primary documented workflow. Docker is provided as an optional path for contributors.
-
-1. Start services:
-
-   ```bash
-   docker compose up --build
-   ```
-
-2. Install dependencies inside the app container if needed:
-
-   ```bash
-   docker compose exec app composer install
-   docker compose exec app npm install
-   ```
-
-3. Run migrations against the `db` service:
-
-   ```bash
-   docker compose exec app php database/migrate.php
-   ```
-
-4. Visit `http://localhost:8080`.
-
-In Docker, app database host is wired to `db` in `docker-compose.yml`.
-
-## How auth works
-
-- **OTP**: 6-digit code, hashed with `password_hash()`, expires in 10 minutes, rate-limited to 5 requests per 15 minutes per user.
-- **Magic Link**: 32-byte random token, hashed with SHA-256, expires in 15 minutes, single-use, same rate limit.
-- Both write to `auth_tokens`. A successful verify creates a session (`Session::put('user_id', ...)`), regenerates the session ID, and redirects to `/dashboard`.
-- `AuthMiddleware` guards any route group that needs a logged-in user — see `routes/web.php` for the pattern.
-
-## Billing
-
-- Billing uses Stripe-hosted Checkout and the Stripe Billing Portal only. Keel never handles raw card data directly.
-- `BillingService` starts Checkout sessions, opens Billing Portal sessions, and syncs local subscription state from Stripe webhooks.
-- `POST /webhooks/stripe` verifies the `Stripe-Signature` header with `STRIPE_WEBHOOK_SECRET` before updating the local `subscriptions` table.
-- `SubscriptionMiddleware` is available for projects built on Keel that need to gate features behind an active or trialing subscription.
-
-## Files and AI
-
-- `Storage` validates uploaded files by actual MIME type using `finfo`, not by trusting client-supplied content types.
-- Executable-adjacent extensions are rejected even if they appear in the configured allowed-extension list.
-- Private files are never served directly from disk; they flow through `GET /files/{id}` and an ownership check first.
-- `AiService` wraps Anthropic's Messages API with plain `curl`, supports text completions, JSON-only responses, and image + prompt requests.
-
-## Organizations
-
-- Multi-tenancy is opt-in through `MULTI_TENANCY_ENABLED`.
-- When enabled, users belong to at most one organization via `users.organization_id`, with roles stored directly on `users.role`.
-- New users without an organization are routed to `/onboarding/organization` after login.
-- Organization owners and admins can invite teammates by email. Invite tokens are hashed at rest, single-use, and expiring.
-- Invite emails are queued for background delivery by `database/queue-work.php` so invite requests do not block HTTP responses.
-- `is_super_admin` is a manual database flag for the platform operator and is never self-assignable through the UI.
-
-## Queue worker
-
-- Keel includes a simple database-backed queue (`jobs` and `failed_jobs`) with no Redis or external broker.
-- Push work with `Keel\Core\Queue::push(...)`; process jobs with the worker script below.
-- OTP and magic-link delivery intentionally stay synchronous so sign-in remains immediate and predictable.
-
-Run one pass (for cron):
-
 ```bash
-php database/queue-work.php --once
+git clone git@github.com:srivera145/duely.git
+cd duely
+
+composer install
+npm install && npm run build
+
+cp .env.example .env
 ```
 
-Run continuously (for supervised workers):
+Fill in `.env`:
 
-```bash
-php database/queue-work.php
+```ini
+APP_URL=http://duely.local
+APP_ENV=local
+
+DB_HOST=127.0.0.1
+DB_NAME=duely
+DB_USER=root
+DB_PASS=
+
+# 32-byte key, base64 encoded. Generate with:
+#   php -r "echo base64_encode(random_bytes(32)).PHP_EOL;"
+APP_ENCRYPTION_KEY=
+
+STRIPE_SECRET=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_SOLO=
+STRIPE_PRICE_STUDIO=
+
+ANTHROPIC_API_KEY=
 ```
 
-### Deployment options
-
-1. Cron (simple, low volume): run `php database/queue-work.php --once` every minute.
-2. Supervised long-running process (higher volume/lower latency): run `php database/queue-work.php` under systemd or Supervisor.
-
-Keel does not install process supervision for you; choose the option that fits your hosting environment.
-
-## Activity log seeding (local/dev)
-
-Use this helper to generate repeatable sample data for the activity pages:
+Then:
 
 ```bash
-php database/seed-activity.php
+php bin/migrate.php
+php bin/seed.php
 ```
 
-Options:
+Point your vhost document root at `public_html/` and add `duely.local` to your hosts file. On Windows, [Helm](https://github.com/srivera145/helm) handles the Apache/MariaDB/PHP side.
 
-- `--count=50` number of rows to generate (default 30, max 500)
-- `--email=activity-seed@example.com` user email to seed under
-- `--org-id=1` include an organization id on seeded rows
-- `--append` keep prior seeded rows instead of replacing them
+---
 
-The script is intentionally blocked outside local/dev/testing environments.
+## The worker
 
-## Security and Errors
+Duely does nothing useful without the background worker running. It sends due reminders and polls inboxes for replies.
 
-- State-changing requests are protected by CSRF tokens. The shared head partial outputs a `csrf-token` meta tag, and forms can use `\Keel\Core\Csrf::field()`.
-- Auth-related endpoints sit behind an IP-based throttle keyed by client IP and route path.
-- Webhook routes stay outside CSRF and throttle middleware because they are verified by third-party signatures instead.
-- Missing routes render a branded 404 page, and uncaught exceptions render a branded 500 page.
-- `public_html/index.php` sets baseline headers on every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and `Referrer-Policy: strict-origin-when-cross-origin`.
+```bash
+php bin/worker.php
+```
 
-## Health checks
+In production, run it under systemd or as a cron entry every minute:
 
-- `GET /up` is an unauthenticated health endpoint for load balancers and uptime monitors.
-- It returns `200` with `{"status":"ok","database":true}` when DB connectivity succeeds.
-- It returns `503` with `{"status":"ok","database":false}` when the database cannot be reached.
+```
+* * * * * cd /var/www/duely && php bin/worker.php >> storage/logs/worker.log 2>&1
+```
 
-## Testing and CI
+Jobs:
 
-- Unit and feature tests live in `tests/` and run with PHPUnit.
-- Run locally with `./vendor/bin/phpunit` (or `vendor\\bin\\phpunit` on Windows).
-- GitHub Actions (`.github/workflows/ci.yml`) runs on every push and pull request:
-   - PHP 8.2 setup
-   - MySQL service
-   - `composer install`
-   - SQL migrations
-   - `npm install && npm run build`
-   - PHPUnit
+| Job | Frequency | Purpose |
+|-----|-----------|---------|
+| `ProcessDueChasesJob` | every minute | Sends reminders that have come due |
+| `PollInboxesJob` | every 5 minutes | Reads replies and bounces, pauses chases |
+| `RefreshMetricsJob` | hourly | Rolls up dashboard counters |
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and PR expectations.
+---
 
-## Adding a new project from this kit
+## Project structure
 
-1. Copy the whole folder, rename it.
-2. Update `composer.json` (`name`), `package.json` (`name`), `.env` (`APP_NAME`, `APP_URL`, `DB_DATABASE`).
-3. Add controllers to `src/App/Controllers/`, register routes in `routes/web.php`, add views under `views/`.
-4. Keep business logic in `src/App/Services/`, keep controllers thin — same separation you've used on keel and PulseIQ.
+```
+app/
+  Controllers/      Route handlers
+  Models/           Tenant-scoped data access
+  Services/         ChaseScheduler, ImapPoller, MailAccountService, Crypto
+  Mail/             MailTransport interface + SmtpTransport
+  Jobs/             Queue workers
+bin/                CLI entry points (migrate, seed, worker)
+database/
+  migrations/
+  seeds/
+public_html/        Document root — all publicly served files
+  api/              JSON endpoints
+  dashboard/
+  invoices/
+  clients/
+  sequences/
+  settings/
+resources/          Tailwind source, JS modules
+storage/            Logs, cache, temp
+```
 
-## Notes / things you might want to add per-project
+---
 
-- No query builder — raw PDO with prepared statements throughout. Add one if a project needs it.
-- No CLI/scaffolding generator (no `php keel make:controller` yet). Can add if it'd save time across projects.
-- Sessions are native PHP sessions, not DB-backed. Fine for single-server; revisit if you ever load-balance across multiple app servers.
-- Mail templates are inline HTML strings in the services for now — pull them into `views/emails/` if they grow.
+## Email credentials
+
+Duely never sends from its own servers. Each user connects a mailbox with standard SMTP and IMAP credentials, which works with Gmail, Outlook, Fastmail, Zoho, iCloud, and any custom-domain mailbox.
+
+**How credentials are handled:**
+
+- Encrypted at rest with AES-256-GCM. The key lives in `.env`, never in the database.
+- Decrypted in memory only at send or poll time.
+- Never logged, never returned to the client, never rendered into HTML.
+- Connection is tested live — a real SMTP handshake and a real IMAP login — before anything is saved.
+
+**How the mailbox is treated:**
+
+- Read-only. Duely never marks messages read, never deletes, never moves anything.
+- Only message headers and a short snippet are stored, never full bodies.
+- Gmail and Outlook require an app password rather than the account password. The UI walks users through it when auth fails.
+
+---
+
+## Sending safeguards
+
+Consumer mail providers throttle or lock accounts that send in bursts, so the scheduler is deliberately conservative:
+
+- Max 30 sends per hour, 200 per day, per connected account
+- 20–90 seconds of jitter between sends
+- Sends only inside the configured window (default 9:00–16:00, weekends skipped), in the **client's** timezone
+- Hard stops checked immediately before every send: invoice paid or void, chase paused or stopped, client suppressed, account needing reauth
+- Row-locked claims and transactional status transitions, so a crash mid-send can never double-send
+
+An invoice imported already 18 days overdue enters at the correct rung of the ladder. It does not fire every missed step at once.
+
+---
+
+## Reply detection
+
+The worst possible failure is sending a Final Notice to someone who already replied. Matching runs in strict priority order:
+
+1. `In-Reply-To` / `References` against a stored `Message-ID`
+2. Provider thread id
+3. Sender address against a client with an active chase, within a 60-day window
+
+Never on subject line alone.
+
+Out-of-office and other auto-replies are detected and **do not** pause the sequence. Hard bounces stop the chase and flag the address.
+
+---
+
+## Testing
+
+```bash
+composer test           # unit + integration
+composer test:cadence   # scheduler edge cases
+composer lint
+```
+
+The cadence suite covers the cases that matter: an invoice already overdue at import, a reply landing between scheduling and send, a worker killed mid-send, and a duplicate poll cycle.
+
+---
+
+## Roadmap
+
+- [ ] Gmail and Microsoft Graph OAuth (drops in behind `MailTransport`, no scheduler changes)
+- [ ] Stripe Invoicing sync
+- [ ] QuickBooks and FreshBooks import
+- [ ] Payment link embedded in reminders
+- [ ] Team seats and shared client ownership
+- [ ] Recovered-revenue reporting
+
+---
+
+## Related
+
+- [Keel](https://get-keel.dev) — the PHP SaaS framework Duely is built on
+- [Helm](https://github.com/srivera145/helm) — local Windows dev environment
+
+---
+
+## License
+
+Proprietary. © 2026 EchoDial LLC. All rights reserved.

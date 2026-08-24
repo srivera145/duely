@@ -5,6 +5,7 @@ use Keel\App\Controllers\ActivityController;
 use Keel\App\Controllers\ApiFileController;
 use Keel\App\Controllers\ApiTokenController;
 use Keel\App\Controllers\BillingController;
+use Keel\App\Controllers\ChaseController;
 use Keel\App\Controllers\ClientController;
 use Keel\App\Controllers\DashboardController;
 use Keel\App\Controllers\DocsController;
@@ -14,10 +15,12 @@ use Keel\App\Controllers\ImportController;
 use Keel\App\Controllers\InvoiceController;
 use Keel\App\Controllers\LlmsTxtController;
 use Keel\App\Controllers\ManifestController;
+use Keel\App\Controllers\OnboardingController;
 use Keel\App\Controllers\OrganizationController;
 use Keel\App\Controllers\RobotsController;
 use Keel\App\Controllers\SequenceController;
 use Keel\App\Controllers\SettingsController;
+use Keel\App\Controllers\ToneAssistController;
 use Keel\App\Controllers\SitemapController;
 use Keel\App\Controllers\SuperAdminController;
 use Keel\App\Controllers\ThemeController;
@@ -90,6 +93,17 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
 
         $router->group(['middleware' => $applicationMiddleware], function ($router) {
             $router->get('/dashboard', [DashboardController::class, 'index']);
+
+            // Duely: guided first run.
+            $router->get('/onboarding', [OnboardingController::class, 'index']);
+            $router->get('/api/onboarding/progress', [OnboardingController::class, 'progress']);
+            $router->post('/api/onboarding/reviewed', [OnboardingController::class, 'markReviewed']);
+            $router->post('/api/onboarding/skip', [OnboardingController::class, 'skip']);
+            $router->post('/api/onboarding/resume', [OnboardingController::class, 'resume']);
+
+            // Duely: plans and trials.
+            $router->get('/api/billing/status', [BillingController::class, 'status']);
+            $router->post('/api/billing/trial', [BillingController::class, 'startTrial']);
             $router->get('/billing/upgrade', [BillingController::class, 'showPlans']);
             $router->get('/billing/success', [BillingController::class, 'success']);
             $router->get('/billing/cancel', [BillingController::class, 'cancel']);
@@ -111,7 +125,18 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->get('/invoices/new', [InvoiceController::class, 'create']);
             $router->get('/invoices/import', [ImportController::class, 'show']);
             $router->get('/invoices/{id}', [InvoiceController::class, 'edit']);
+            $router->get('/invoices/{id}/timeline', [InvoiceController::class, 'show']);
             $router->get('/api/invoices', [InvoiceController::class, 'listJson']);
+            $router->get('/api/dashboard', [DashboardController::class, 'metrics']);
+
+            // Duely: manual control over a running chase.
+            $router->post('/api/chases/{id}/pause', [ChaseController::class, 'pause']);
+            $router->post('/api/chases/{id}/resume', [ChaseController::class, 'resume']);
+            $router->post('/api/chases/{id}/stop', [ChaseController::class, 'stop']);
+            $router->post('/api/chases/{id}/send-now', [ChaseController::class, 'sendNow']);
+            $router->post('/api/invoices/undo', [ChaseController::class, 'undoAction']);
+            $router->post('/api/invoices/{id}/mark-paid', [ChaseController::class, 'markPaid']);
+            $router->post('/api/invoices/{id}/start-chase', [ChaseController::class, 'startChase']);
             $router->post('/api/invoices', [InvoiceController::class, 'store']);
             $router->post('/api/invoices/{id}/status', [InvoiceController::class, 'updateStatus']);
             $router->post('/api/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
@@ -127,6 +152,12 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->get('/sequences', [SequenceController::class, 'index']);
             $router->get('/sequences/{id}', [SequenceController::class, 'edit']);
             $router->post('/api/sequences/preview', [SequenceController::class, 'preview']);
+
+            // Duely: Claude-assisted drafting. Both endpoints return a proposal
+            // the user accepts or discards; neither writes to a sequence.
+            $router->get('/api/tone-assist/allowance', [ToneAssistController::class, 'allowance']);
+            $router->post('/api/tone-assist/rewrite', [ToneAssistController::class, 'rewrite']);
+            $router->post('/api/tone-assist/sequence', [ToneAssistController::class, 'sequence']);
             $router->post('/api/sequences/restore-default', [SequenceController::class, 'restoreDefault']);
             $router->post('/api/sequences/{id}', [SequenceController::class, 'update']);
             $router->post('/api/sequences/{id}/default', [SequenceController::class, 'makeDefault']);

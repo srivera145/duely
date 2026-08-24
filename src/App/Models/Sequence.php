@@ -108,7 +108,11 @@ class Sequence extends BaseModel
     public static function makeDefault(int $tenantId, int $id): bool
     {
         $connection = Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             $demote = $connection->prepare(
@@ -122,11 +126,15 @@ class Sequence extends BaseModel
             $promote->execute([$tenantId, $id]);
             $promoted = $promote->rowCount() > 0;
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
 
             return $promoted;
         } catch (\Throwable $exception) {
-            $connection->rollBack();
+            if ($openedTransaction && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
             throw $exception;
         }
     }
@@ -139,7 +147,11 @@ class Sequence extends BaseModel
     public static function createWithSteps(int $tenantId, array $attributes, array $steps): int
     {
         $connection = Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             $sequenceId = static::create($tenantId, $attributes);
@@ -152,11 +164,15 @@ class Sequence extends BaseModel
                 $position++;
             }
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
 
             return $sequenceId;
         } catch (\Throwable $exception) {
-            $connection->rollBack();
+            if ($openedTransaction && $connection->inTransaction()) {
+                $connection->rollBack();
+            }
             throw $exception;
         }
     }

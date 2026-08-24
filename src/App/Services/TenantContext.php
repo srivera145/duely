@@ -70,7 +70,11 @@ class TenantContext
         $name = trim((string) ($user['name'] ?? '')) ?: (string) $user['email'];
         $slug = self::uniqueSlug($name);
 
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             $insert = $connection->prepare('INSERT INTO organizations (name, slug) VALUES (?, ?)');
@@ -80,7 +84,9 @@ class TenantContext
             $attach = $connection->prepare('UPDATE users SET organization_id = ?, role = ? WHERE id = ?');
             $attach->execute([$organizationId, 'owner', (int) $user['id']]);
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
 
             // A workspace without a sequence cannot chase anything, so the
             // default ladder is part of creating one. Seeding failure is
@@ -92,9 +98,9 @@ class TenantContext
         } catch (\Throwable $exception) {
             // The commit above may already have landed, so only roll back a
             // transaction that is genuinely still open.
-            if ($connection->inTransaction()) {
-                $connection->rollBack();
-            }
+            if ($openedTransaction && $connection->inTransaction()) {
+                    $connection->rollBack();
+                }
 
             throw $exception;
         }

@@ -108,11 +108,17 @@ class ChaseSender
      *
      * @return array{chase_id:int, outcome:string, reason:?string, message_id:?int}|null
      */
-    public function processNext(int $tenantId, ?DateTimeImmutable $now = null): ?array
+    /**
+     * @param bool $ignoreWindow relax ONLY the time-of-day rule, for a user
+     *                           pressing "send now". Every hard stop still
+     *                           applies — a paid invoice is never emailed
+     *                           because someone clicked a button.
+     */
+    public function processNext(int $tenantId, ?DateTimeImmutable $now = null, bool $ignoreWindow = false): ?array
     {
         $now ??= Clock::now();
 
-        $claim = $this->claim($tenantId, $now);
+        $claim = $this->claim($tenantId, $now, $ignoreWindow);
 
         if ($claim === null) {
             return null;
@@ -141,10 +147,14 @@ class ChaseSender
      *
      * @return array{chase_id:int, outcome:string, reason:?string, message:?array, context:?array}|null
      */
-    private function claim(int $tenantId, DateTimeImmutable $now): ?array
+    private function claim(int $tenantId, DateTimeImmutable $now, bool $ignoreWindow = false): ?array
     {
         $connection = Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             // SKIP LOCKED lets several workers drain the queue at once without
@@ -169,7 +179,9 @@ class ChaseSender
             $chase = $select->fetch();
 
             if (!$chase) {
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return null;
             }
@@ -182,7 +194,9 @@ class ChaseSender
 
             if ($stop !== null) {
                 $this->cancel($tenantId, $chaseId, $stop['status'], $stop['reason']);
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return ['chase_id' => $chaseId, 'outcome' => 'cancelled', 'reason' => $stop['message'], 'message' => null, 'context' => null];
             }
@@ -196,7 +210,9 @@ class ChaseSender
 
             if ($pending !== null) {
                 $this->parkChase($tenantId, $chaseId);
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return [
                     'chase_id' => $chaseId,
@@ -211,7 +227,9 @@ class ChaseSender
 
             if ($step === null) {
                 Chase::advance($tenantId, $chaseId, (int) $chase['current_position'], null);
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return ['chase_id' => $chaseId, 'outcome' => 'completed', 'reason' => 'No reminders left in this sequence.', 'message' => null, 'context' => null];
             }
@@ -223,19 +241,25 @@ class ChaseSender
                 Chase::update($tenantId, $chaseId, [
                     'next_send_at' => Clock::toDatabase($allowance['retry_after'] ?? $now->modify('+15 minutes')),
                 ]);
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return ['chase_id' => $chaseId, 'outcome' => 'rate_limited', 'reason' => $allowance['reason'], 'message' => null, 'context' => null];
             }
 
             // --- send window ------------------------------------------------
             // Re-checked here so a backlog cleared at 4am does not email
-            // everyone at 4am.
-            if (!$this->scheduler->isWithinWindow($now, $sequence, $invoice)) {
+            // everyone at 4am. A deliberate "send now" is the one case where
+            // the user has overruled the clock — the hard stops above are not
+            // negotiable either way.
+            if (!$ignoreWindow && !$this->scheduler->isWithinWindow($now, $sequence, $invoice)) {
                 $nextSlot = $this->scheduler->nextWindowSlot($now, $sequence, $invoice, $now);
 
                 Chase::update($tenantId, $chaseId, ['next_send_at' => Clock::toDatabase($nextSlot)]);
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return ['chase_id' => $chaseId, 'outcome' => 'outside_window', 'reason' => 'Waiting for the send window.', 'message' => null, 'context' => null];
             }
@@ -247,7 +271,9 @@ class ChaseSender
                 // The unique index refused a second row at this position, which
                 // means another run already staged it. Leave it alone.
                 $this->parkChase($tenantId, $chaseId);
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return ['chase_id' => $chaseId, 'outcome' => 'already_staged', 'reason' => 'A message for this step already exists.', 'message' => null, 'context' => null];
             }
@@ -260,7 +286,9 @@ class ChaseSender
                 'next_send_at' => null,
             ]);
 
-            $connection->commit();
+            if ($openedTransaction) {
+                $connection->commit();
+            }
 
             return [
                 'chase_id' => $chaseId,
@@ -270,9 +298,9 @@ class ChaseSender
                 'context' => $context,
             ];
         } catch (Throwable $exception) {
-            if ($connection->inTransaction()) {
-                $connection->rollBack();
-            }
+            if ($openedTransaction && $connection->inTransaction()) {
+                    $connection->rollBack();
+                }
 
             throw $exception;
         }
@@ -397,7 +425,11 @@ class ChaseSender
         DateTimeImmutable $now
     ): array {
         $connection = Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             ChaseMessage::markSent($tenantId, $messageId);
@@ -425,11 +457,13 @@ class ChaseSender
                 $plan['next_send_at']
             );
 
-            $connection->commit();
-        } catch (Throwable $exception) {
-            if ($connection->inTransaction()) {
-                $connection->rollBack();
+            if ($openedTransaction) {
+                $connection->commit();
             }
+        } catch (Throwable $exception) {
+            if ($openedTransaction && $connection->inTransaction()) {
+                    $connection->rollBack();
+                }
 
             throw $exception;
         }
@@ -455,7 +489,11 @@ class ChaseSender
         $exhausted = !$result->retryable || $attempts >= self::MAX_ATTEMPTS;
 
         $connection = Database::connection();
-        $connection->beginTransaction();
+        $openedTransaction = !$connection->inTransaction();
+
+        if ($openedTransaction) {
+            $connection->beginTransaction();
+        }
 
         try {
             if (!$exhausted) {
@@ -478,7 +516,9 @@ class ChaseSender
                     'current_position' => (int) $message['position'] - 1,
                 ]);
 
-                $connection->commit();
+                if ($openedTransaction) {
+                    $connection->commit();
+                }
 
                 return [
                     'chase_id' => $chaseId,
@@ -504,11 +544,13 @@ class ChaseSender
                 ? Chase::PAUSE_NEEDS_REAUTH
                 : Chase::PAUSE_MANUAL);
 
-            $connection->commit();
-        } catch (Throwable $exception) {
-            if ($connection->inTransaction()) {
-                $connection->rollBack();
+            if ($openedTransaction) {
+                $connection->commit();
             }
+        } catch (Throwable $exception) {
+            if ($openedTransaction && $connection->inTransaction()) {
+                    $connection->rollBack();
+                }
 
             throw $exception;
         }
