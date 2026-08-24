@@ -24,6 +24,8 @@ class Client extends BaseModel
             'is_archived',
             'suppressed_at',
             'suppressed_reason',
+            'email_invalid_at',
+            'email_invalid_reason',
         ];
     }
 

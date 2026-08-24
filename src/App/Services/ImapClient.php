@@ -275,6 +275,127 @@ class ImapClient
     }
 
     /**
+     * Open a mailbox READ-ONLY.
+     *
+     * EXAMINE is SELECT without write access: the server itself refuses any
+     * attempt to change flags, move, or expunge. Duely polls someone's personal
+     * inbox, so the guarantee that nothing can be modified is made by the
+     * protocol rather than by our own discipline.
+     *
+     * @return array{ok:bool, uidnext:?int, uidvalidity:?int, exists:int, diagnosis:ConnectionDiagnosis}
+     */
+    public function examine(string $folder): array
+    {
+        $response = $this->command('EXAMINE ' . self::quote($folder));
+
+        if (!$response['ok']) {
+            return [
+                'ok' => false,
+                'uidnext' => null,
+                'uidvalidity' => null,
+                'exists' => 0,
+                'diagnosis' => ConnectionDiagnosis::failure(
+                    'imap',
+                    ConnectionDiagnosis::MAILBOX_MISSING,
+                    'The folder "' . $folder . '" could not be opened.',
+                    self::scrub($response['text'])
+                ),
+            ];
+        }
+
+        $uidNext = null;
+        $uidValidity = null;
+        $exists = 0;
+
+        foreach ($response['lines'] as $line) {
+            if (preg_match('/\[UIDNEXT (\d+)\]/i', $line, $matches) === 1) {
+                $uidNext = (int) $matches[1];
+            }
+
+            if (preg_match('/\[UIDVALIDITY (\d+)\]/i', $line, $matches) === 1) {
+                $uidValidity = (int) $matches[1];
+            }
+
+            if (preg_match('/^\* (\d+) EXISTS/i', $line, $matches) === 1) {
+                $exists = (int) $matches[1];
+            }
+        }
+
+        // Some servers only report UIDNEXT in a STATUS response.
+        if ($uidNext === null) {
+            $status = $this->command('STATUS ' . self::quote($folder) . ' (UIDNEXT UIDVALIDITY)');
+
+            foreach ($status['lines'] as $line) {
+                if (preg_match('/UIDNEXT (\d+)/i', $line, $matches) === 1) {
+                    $uidNext = (int) $matches[1];
+                }
+
+                if ($uidValidity === null && preg_match('/UIDVALIDITY (\d+)/i', $line, $matches) === 1) {
+                    $uidValidity = (int) $matches[1];
+                }
+            }
+        }
+
+        return [
+            'ok' => true,
+            'uidnext' => $uidNext,
+            'uidvalidity' => $uidValidity,
+            'exists' => $exists,
+            'diagnosis' => ConnectionDiagnosis::ok('imap', 'Opened ' . $folder . ' read-only.'),
+        ];
+    }
+
+    /**
+     * UIDs at or above a cursor.
+     *
+     * `UID SEARCH UID n:*` is the standard way to ask for everything new. The
+     * range is inclusive and servers may return the last existing UID even when
+     * n is beyond it, so the caller still filters.
+     *
+     * @return int[]
+     */
+    public function uidsFrom(int $fromUid): array
+    {
+        return $this->searchUids('UID ' . max(1, $fromUid) . ':*');
+    }
+
+    /**
+     * Headers plus a short body extract for one message, without marking it read.
+     *
+     * BODY.PEEK is the read-only form of BODY: it returns content without
+     * setting the \Seen flag. Using BODY here instead would silently mark a
+     * client's unread mail as read, which is unacceptable in someone's own
+     * inbox. Only the first slice of the body is requested, because Duely
+     * stores a snippet and never the whole message.
+     *
+     * @return array{uid:int, headers:string, body:string}|null
+     */
+    public function fetchMessage(int $uid, int $bodyBytes = 2048): ?array
+    {
+        $response = $this->command(
+            'UID FETCH ' . $uid . ' (BODY.PEEK[HEADER] BODY.PEEK[TEXT]<0.' . max(0, $bodyBytes) . '>)'
+        );
+
+        if (!$response['ok']) {
+            return null;
+        }
+
+        $headers = '';
+        $body = '';
+
+        // The literals collected by command() arrive in request order.
+        foreach ($response['literals'] as $index => $literal) {
+            $index === 0 ? $headers = $literal : $body .= $literal;
+        }
+
+        if ($headers === '') {
+            return null;
+        }
+
+        return ['uid' => $uid, 'headers' => trim($headers), 'body' => $body];
+    }
+
+    /**
      * UIDs in the selected mailbox matching an IMAP search key.
      *
      * @return int[]
@@ -317,10 +438,8 @@ class ImapClient
             return null;
         }
 
-        $body = implode("\r\n", $response['lines']);
-        $start = strpos($body, "\r\n");
-
-        return $start === false ? null : trim(substr($body, $start));
+        // The header block arrives as a literal, not as protocol lines.
+        return isset($response['literals'][0]) ? trim($response['literals'][0]) : null;
     }
 
     public function disconnect(): void
@@ -349,18 +468,25 @@ class ImapClient
     /**
      * Issue a tagged command and collect every line up to its completion.
      *
-     * @return array{ok:bool, text:string, lines:string[]}
+     * IMAP sends bulk data as literals: a line ending in `{N}` means the next N
+     * octets are raw content, which may itself contain CRLFs and text that
+     * looks like protocol. Reading those line-by-line would corrupt any message
+     * containing a blank line — that is, all of them — so a literal is read as
+     * exactly N bytes and collected separately.
+     *
+     * @return array{ok:bool, text:string, lines:string[], literals:string[]}
      */
     private function command(string $command, bool $sensitive = false): array
     {
         if ($this->stream === null) {
-            return ['ok' => false, 'text' => 'Not connected.', 'lines' => []];
+            return ['ok' => false, 'text' => 'Not connected.', 'lines' => [], 'literals' => []];
         }
 
         $tag = 'D' . str_pad((string) (++$this->tag), 4, '0', STR_PAD_LEFT);
         fwrite($this->stream, $tag . ' ' . $command . "\r\n");
 
         $lines = [];
+        $literals = [];
 
         while (true) {
             $line = $this->readLine();
@@ -370,6 +496,7 @@ class ImapClient
                     'ok' => false,
                     'text' => 'The server closed the connection unexpectedly.',
                     'lines' => $lines,
+                    'literals' => $literals,
                 ];
             }
 
@@ -383,11 +510,41 @@ class ImapClient
                     // the credential, but the guard keeps that guarantee local.
                     'text' => $sensitive ? self::scrub($completion) : $completion,
                     'lines' => $lines,
+                    'literals' => $literals,
                 ];
             }
 
             $lines[] = $line;
+
+            // A trailing {N} announces N octets of raw data on the next read.
+            if (preg_match('/\{(\d+)\}$/', $line, $matches) === 1) {
+                $literals[] = $this->readBytes((int) $matches[1]);
+            }
         }
+    }
+
+    /**
+     * Read exactly N octets, however many reads that takes.
+     */
+    private function readBytes(int $length): string
+    {
+        if ($this->stream === null || $length <= 0) {
+            return '';
+        }
+
+        $buffer = '';
+
+        while (strlen($buffer) < $length) {
+            $chunk = fread($this->stream, $length - strlen($buffer));
+
+            if ($chunk === false || $chunk === '') {
+                break;
+            }
+
+            $buffer .= $chunk;
+        }
+
+        return $buffer;
     }
 
     private function readLine(): string

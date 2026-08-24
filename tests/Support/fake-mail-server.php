@@ -164,11 +164,17 @@ function handleImap($conn, string $mode): void
                 if (stripos($args, 'SEARCH') === 0) {
                     fwrite($conn, "* SEARCH 101 102 103" . $CRLF . "$tag OK UID SEARCH completed" . $CRLF);
                 } else {
-                    fwrite($conn, "* 1 FETCH (BODY[HEADER]" . $CRLF
-                        . "From: bill@bigco.test" . $CRLF
-                        . "Subject: Re: Invoice INV-001" . $CRLF
-                        . "Message-ID: <reply-9001@bigco.test>" . $CRLF
-                        . ")" . $CRLF
+                    // Real servers return BODY[] content as a literal — a
+                    // {N} byte count followed by exactly N octets — because
+                    // the content itself contains CRLFs. Anything else would
+                    // let a parser that cannot handle literals appear to work.
+                    $headers = 'From: bill@bigco.test' . $CRLF
+                        . 'Subject: Re: Invoice INV-001' . $CRLF
+                        . 'Message-ID: <reply-9001@bigco.test>' . $CRLF;
+
+                    fwrite($conn, '* 1 FETCH (BODY[HEADER] {' . strlen($headers) . '}' . $CRLF
+                        . $headers
+                        . ')' . $CRLF
                         . "$tag OK UID FETCH completed" . $CRLF);
                 }
                 break;

@@ -32,7 +32,11 @@ class ReplyEvent extends BaseModel
             'chase_id',
             'chase_message_id',
             'email_account_id',
+            'provider_message_id',
+            'provider_uid',
             'type',
+            'matched_by',
+            'is_hard_bounce',
             'from_email',
             'subject',
             'snippet',
@@ -55,12 +59,18 @@ class ReplyEvent extends BaseModel
         $attributes['received_at'] = $attributes['received_at']
             ?? Clock::toDatabase(Clock::now());
 
+        // INSERT IGNORE leans on both unique indexes: (tenant_id,
+        // rfc_message_id) and (email_account_id, provider_message_id). The
+        // second is what makes an overlapping re-poll a no-op, because plenty
+        // of bounces and autoresponders carry no Message-ID at all.
         $sql = 'INSERT IGNORE INTO reply_events
-                    (tenant_id, chase_id, chase_message_id, email_account_id, type,
+                    (tenant_id, chase_id, chase_message_id, email_account_id,
+                     provider_message_id, provider_uid, type, matched_by, is_hard_bounce,
                      from_email, subject, snippet, rfc_message_id, in_reply_to,
                      thread_id, raw_headers, received_at)
                 VALUES
-                    (:tenant_id, :chase_id, :chase_message_id, :email_account_id, :type,
+                    (:tenant_id, :chase_id, :chase_message_id, :email_account_id,
+                     :provider_message_id, :provider_uid, :type, :matched_by, :is_hard_bounce,
                      :from_email, :subject, :snippet, :rfc_message_id, :in_reply_to,
                      :thread_id, :raw_headers, :received_at)';
 
@@ -70,7 +80,11 @@ class ReplyEvent extends BaseModel
             'chase_id' => $attributes['chase_id'] ?? null,
             'chase_message_id' => $attributes['chase_message_id'] ?? null,
             'email_account_id' => $attributes['email_account_id'] ?? null,
+            'provider_message_id' => $attributes['provider_message_id'] ?? null,
+            'provider_uid' => $attributes['provider_uid'] ?? null,
             'type' => $attributes['type'] ?? self::TYPE_UNKNOWN,
+            'matched_by' => $attributes['matched_by'] ?? null,
+            'is_hard_bounce' => $attributes['is_hard_bounce'] ?? 0,
             'from_email' => $attributes['from_email'] ?? null,
             'subject' => $attributes['subject'] ?? null,
             'snippet' => $attributes['snippet'] ?? null,
