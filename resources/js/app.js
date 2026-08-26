@@ -2,6 +2,7 @@ import '../css/app.css';
 import { initChaseControls } from './components/chase-controls';
 import { initEmailAccount } from './components/email-account';
 import { initImportWizard } from './components/import-wizard';
+import { initInvoiceExtract } from './components/invoice-extract';
 import { initModal } from './components/modal';
 import { initOnboarding } from './components/onboarding';
 import { initRecords } from './components/records';
@@ -132,6 +133,7 @@ const initSharedUi = () => {
 	initChaseControls();
 	initToneAssist();
 	initOnboarding();
+	initInvoiceExtract();
 };
 
 if (document.readyState === 'loading') {

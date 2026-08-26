@@ -14,6 +14,21 @@ $status = (string) ($account['status'] ?? 'unverified');
 $exists = (bool) ($account['exists'] ?? false);
 $notice = $account['app_password_notice'] ?? null;
 
+// The next thing worth doing, taken from the onboarding ladder rather than
+// hardcoded here, so the two can never disagree about the order. Skipped once
+// the mailbox step is not the blocker any more.
+$onboarding = $onboarding ?? ['steps' => [], 'complete' => true];
+$nextStep = null;
+
+foreach ($onboarding['steps'] as $step) {
+    if (!$step['done'] && $step['key'] !== \Keel\App\Services\OnboardingService::STEP_EMAIL) {
+        $nextStep = $step;
+        break;
+    }
+}
+
+$connected = $exists && $status === 'active';
+
 $statusStyles = [
     'active' => ['label' => 'Connected', 'class' => 'border-success-border bg-success-soft text-success-text'],
     'needs_reauth' => ['label' => 'Needs attention', 'class' => 'border-amber-500/30 bg-amber-500/10 text-amber-400'],
@@ -43,6 +58,35 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
             </div>
             <a href="/dashboard" class="text-sm text-text-muted hover:text-text-strong">Back to dashboard</a>
         </div>
+
+        <!-- What to do once the mailbox is connected. -->
+        <?php if ($connected && $nextStep !== null): ?>
+        <div class="mb-6 rounded-xl border border-brand bg-brand/5 p-5">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <p class="text-sm font-medium text-brand">Mailbox connected &mdash; next</p>
+                    <h2 class="mt-1 text-lg font-semibold text-text-strong"><?= $e($nextStep['title']) ?></h2>
+                    <p class="mt-1 max-w-xl text-sm text-text-muted"><?= $e($nextStep['blurb']) ?></p>
+                </div>
+                <div class="flex shrink-0 flex-wrap items-center gap-3">
+                    <a href="<?= $e($nextStep['href']) ?>" class="btn btn-primary"><?= $e($nextStep['action']) ?></a>
+                    <a href="/onboarding" class="text-sm text-text-muted hover:text-text-strong">See all steps</a>
+                </div>
+            </div>
+        </div>
+        <?php elseif ($connected): ?>
+        <div class="mb-6 rounded-xl border border-card-border bg-card p-5">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <p class="font-semibold text-text-strong">Your mailbox is connected</p>
+                    <p class="mt-1 text-sm text-text-muted">
+                        Nothing else to do here. Reminders go out from this address.
+                    </p>
+                </div>
+                <a href="/dashboard" class="btn btn-primary shrink-0">Back to the dashboard</a>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <!-- Status banner: prominent when the connection is broken. -->
         <?php if ($status === 'needs_reauth'): ?>
@@ -247,6 +291,13 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                 <button type="button" id="send-test-button" class="btn btn-secondary border border-card-border">
                     Send myself a test email
                 </button>
+                <?php endif; ?>
+
+                <?php if ($connected): ?>
+                <a href="<?= $nextStep !== null ? $e($nextStep['href']) : '/dashboard' ?>"
+                   class="btn btn-secondary border border-card-border">
+                    <?= $nextStep !== null ? $e($nextStep['action']) : 'Back to the dashboard' ?> &rarr;
+                </a>
                 <?php endif; ?>
 
                 <?php if ($exists): ?>

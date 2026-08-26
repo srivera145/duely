@@ -110,6 +110,86 @@ class AiService
         ];
     }
 
+    /**
+     * Read a document — a PDF or a photo — against a JSON Schema.
+     *
+     * `output_config.format` constrains the response to the schema at the API
+     * level, so the reply cannot come back as prose, as fenced markdown, or with
+     * a field that does not exist. That matters more here than for the writing
+     * assistant: a hallucinated due date silently schedules a reminder on the
+     * wrong day, and a hallucinated amount emails a client a number the user
+     * never wrote.
+     *
+     * The document block goes before the text block, which is the order the API
+     * expects.
+     *
+     * @param array<string, mixed> $schema a JSON Schema for the reply
+     * @return array{data:array<string, mixed>, model:string, input_tokens:int, output_tokens:int}
+     */
+    public function extractFromDocument(
+        string $prompt,
+        string $path,
+        array $schema,
+        array $options = []
+    ): array {
+        if (!is_file($path)) {
+            throw new \RuntimeException('Document not found.');
+        }
+
+        $mimeType = (string) (new \finfo(FILEINFO_MIME_TYPE))->file($path);
+        $contents = file_get_contents($path);
+
+        if ($contents === false) {
+            throw new \RuntimeException('Failed to read the document.');
+        }
+
+        // A PDF is a document block; a photograph of an invoice is an image
+        // block. Both are base64, and the base64 must carry no newlines.
+        $source = ['type' => 'base64', 'media_type' => $mimeType, 'data' => base64_encode($contents)];
+
+        $block = match ($mimeType) {
+            'application/pdf' => ['type' => 'document', 'source' => $source],
+            'image/jpeg', 'image/png' => ['type' => 'image', 'source' => $source],
+            default => throw new \RuntimeException(
+                'Only PDF, JPEG and PNG documents can be read. This file is ' . $mimeType . '.'
+            ),
+        };
+
+        $response = $this->request([
+            'model' => $this->model(),
+            'max_tokens' => $this->maxTokens($options),
+            'output_config' => [
+                'format' => ['type' => 'json_schema', 'schema' => $schema],
+            ],
+            'messages' => [[
+                'role' => 'user',
+                'content' => [$block, ['type' => 'text', 'text' => $prompt]],
+            ]],
+        ]);
+
+        // A refusal is a 200 with no usable content, so it has to be checked
+        // before the reply is read rather than after.
+        if (($response['stop_reason'] ?? null) === 'refusal') {
+            throw new \RuntimeException('Claude declined to read that document.');
+        }
+
+        $text = $this->extractText($response);
+        $decoded = json_decode($text, true);
+
+        if (!is_array($decoded)) {
+            throw new \RuntimeException('The reply did not match the requested shape.');
+        }
+
+        $usage = $response['usage'] ?? [];
+
+        return [
+            'data' => $decoded,
+            'model' => (string) ($response['model'] ?? $this->model()),
+            'input_tokens' => (int) ($usage['input_tokens'] ?? 0),
+            'output_tokens' => (int) ($usage['output_tokens'] ?? 0),
+        ];
+    }
+
     public function completeJson(string $prompt, array $options = []): array
     {
         $jsonPrompt = $prompt . "\n\nReturn only valid JSON. Do not include markdown fences or commentary.";

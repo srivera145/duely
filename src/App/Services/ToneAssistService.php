@@ -35,7 +35,8 @@ class ToneAssistService
     public const ACTION_SEQUENCE = 'sequence';
 
     /** Calls per tenant per rolling day. */
-    public const DAILY_LIMIT = 20;
+    /** @deprecated The budget lives on AiUsage now; kept so callers still resolve. */
+    public const DAILY_LIMIT = AiUsage::DAILY_LIMIT;
 
     private const TONES = ['polite', 'neutral', 'firm', 'final'];
 
@@ -63,21 +64,8 @@ class ToneAssistService
      */
     public function allowance(int $tenantId, ?DateTimeImmutable $now = null): array
     {
-        $now ??= Clock::now();
-        $since = Clock::toDatabase($now->modify('-1 day'));
-
-        $statement = Database::connection()->prepare(
-            'SELECT COUNT(*) FROM ai_usage WHERE tenant_id = ? AND created_at >= ?'
-        );
-        $statement->execute([$tenantId, $since]);
-        $used = (int) $statement->fetchColumn();
-
-        return [
-            'allowed' => $used < self::DAILY_LIMIT,
-            'used' => $used,
-            'limit' => self::DAILY_LIMIT,
-            'resets_at' => $used < self::DAILY_LIMIT ? null : $this->oldestCallExpiry($tenantId, $now),
-        ];
+        // One budget across every AI feature, not one per feature -- see AiUsage.
+        return (new AiUsage())->allowance($tenantId, $now);
     }
 
     // ----------------------------------------------------------- action one
@@ -535,33 +523,7 @@ class ToneAssistService
         float $startedAt,
         ?DateTimeImmutable $now = null
     ): void {
-        try {
-            $statement = Database::connection()->prepare(
-                'INSERT INTO ai_usage
-                    (tenant_id, user_id, action, model, input_tokens, output_tokens,
-                     cache_read_tokens, cache_write_tokens, outcome, failure_reason,
-                     duration_ms, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-            );
-
-            $statement->execute([
-                $tenantId,
-                Auth::id(),
-                $action,
-                mb_substr($model, 0, 64),
-                (int) ($usage['input_tokens'] ?? 0),
-                (int) ($usage['output_tokens'] ?? 0),
-                (int) ($usage['cache_read_tokens'] ?? 0),
-                (int) ($usage['cache_write_tokens'] ?? 0),
-                $outcome,
-                $reason === null ? null : mb_substr($reason, 0, 255),
-                (int) round((microtime(true) - $startedAt) * 1000),
-                Clock::toDatabase($now ?? Clock::now()),
-            ]);
-        } catch (Throwable $exception) {
-            // Usage accounting must never be the thing that breaks the feature.
-            error_log('[Duely] Could not record AI usage: ' . $exception->getMessage());
-        }
+        (new AiUsage())->record($tenantId, $action, $model, $usage, $outcome, $reason, $startedAt, $now);
     }
 
     /**
@@ -594,22 +556,6 @@ class ToneAssistService
             'rejected' => (int) ($row['rejected'] ?? 0),
             'failed' => (int) ($row['failed'] ?? 0),
         ];
-    }
-
-    private function oldestCallExpiry(int $tenantId, DateTimeImmutable $now): ?string
-    {
-        $statement = Database::connection()->prepare(
-            'SELECT MIN(created_at) FROM ai_usage WHERE tenant_id = ? AND created_at >= ?'
-        );
-        $statement->execute([$tenantId, Clock::toDatabase($now->modify('-1 day'))]);
-
-        $oldest = $statement->fetchColumn();
-
-        if (!is_string($oldest) || $oldest === '') {
-            return null;
-        }
-
-        return Clock::toDatabase(Clock::fromDatabase($oldest)?->modify('+1 day'));
     }
 
     private function mergeRedactions(array ...$sets): array

@@ -31,13 +31,18 @@ class ImportController extends Controller
      */
     public function show(Request $request): void
     {
-        TenantContext::requireId();
+        $tenantId = TenantContext::requireId();
 
         $this->view('invoices.import', [
             'title' => 'Import invoices - Duely',
             'metaDescription' => 'Bring your invoices in from a spreadsheet.',
             'fields' => ColumnMapper::fields(),
             'previewRows' => CsvImporter::PREVIEW_ROWS,
+            // A CSV assumes the data is already a table. Most people have a PDF
+            // from whatever made the invoice, which is why this second path
+            // exists at all.
+            'extractionConfigured' => \Keel\App\Services\ToneAssistService::isConfigured(),
+            'extractionEnabled' => \Keel\App\Services\InvoiceExtractor::isEnabledFor($tenantId),
         ]);
     }
 

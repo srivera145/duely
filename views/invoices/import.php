@@ -7,6 +7,8 @@
  * the screen says so at every stage.
  */
 $fields = $fields ?? [];
+$extractionConfigured = $extractionConfigured ?? false;
+$extractionEnabled = $extractionEnabled ?? false;
 $previewRows = $previewRows ?? 10;
 
 $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -71,6 +73,61 @@ $steps = [
             </div>
 
             <div id="upload-error" class="mt-4 hidden rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-text"></div>
+
+            <?php if ($extractionConfigured): ?>
+            <!-- The other way in: the invoice document itself. -->
+            <div class="mt-8 border-t border-card-border pt-6">
+                <h3 class="font-semibold text-text-strong">Only have the invoice itself?</h3>
+                <p class="mt-1 text-sm text-text-muted">
+                    Drop the PDF or a photo and Duely reads the details off it. You check every
+                    field before anything is saved.
+                </p>
+
+                <?php if ($extractionEnabled): ?>
+                <div id="doc-zone"
+                     class="mt-4 cursor-pointer rounded-xl border-2 border-dashed border-card-border p-8 text-center transition hover:border-brand">
+                    <input type="file" id="doc-file" accept="application/pdf,image/jpeg,image/png" class="hidden">
+                    <p class="text-text">Drop an invoice here, or <span class="font-semibold text-brand">browse</span></p>
+                    <p class="mt-1 text-xs text-text-muted">PDF, JPEG or PNG, up to 10MB. One invoice at a time.</p>
+                </div>
+                <p class="mt-2 text-xs text-text-muted">
+                    The document is sent to Anthropic to be read, then deleted. It is not kept.
+                    <a href="/privacy#ai" class="underline hover:text-text-strong">What this means</a>.
+                </p>
+
+                <?php else: ?>
+                <!-- The consent gate. Written to be read, not clicked past: this
+                     is the one place in Duely where real client data leaves. -->
+                <div class="mt-4 rounded-xl border border-card-border bg-surface-muted p-5">
+                    <p class="text-sm text-text">
+                        To read a document, Duely sends it to <span class="text-text-strong">Anthropic</span>,
+                        the company behind Claude. That means the client's name, the amount, and
+                        anything else printed on the invoice leave this server.
+                    </p>
+                    <p class="mt-3 text-sm text-text-muted">
+                        This is different from the writing assistant, which only ever sees your
+                        template with placeholders where the real values go. Reading a document
+                        cannot work that way, because the details are the thing being read.
+                    </p>
+                    <p class="mt-3 text-sm text-text-muted">
+                        The file is deleted as soon as it has been read, and nothing is saved until
+                        you confirm the fields yourself. You can switch this back off at any time.
+                    </p>
+                    <div class="mt-4 flex flex-wrap items-center gap-3">
+                        <button type="button" id="extraction-consent" class="btn btn-primary btn-sm">
+                            Turn this on
+                        </button>
+                        <a href="/privacy#ai" class="text-sm text-text-muted hover:text-text-strong">
+                            Read what Duely sends
+                        </a>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <div id="doc-error" class="mt-4 hidden rounded-lg border border-danger-border bg-danger-soft p-3 text-sm text-danger-text"></div>
+                <div id="doc-busy" class="mt-4 hidden text-sm text-text-muted">Reading the invoice&hellip;</div>
+            </div>
+            <?php endif; ?>
         </section>
 
         <!-- Step 2: preview and map -->

@@ -100,9 +100,47 @@
     color: var(--color-text-muted);
   }
 
+  /*
+   * The input only ever set a border colour, so the browser default supplied
+   * the rest: white background, black text, in both themes. On the dark UI that
+   * is a white box with grey-on-white placeholder text. Every field in the
+   * application uses this class, so the fix belongs here rather than in a view.
+   */
   .form-input {
     @apply w-full rounded-lg border px-3 py-2 text-sm;
     border-color: var(--color-input-border);
+    background-color: var(--color-surface-muted);
+    color: var(--color-text);
+  }
+
+  .form-input::placeholder {
+    color: var(--color-text-muted);
+    opacity: 1; /* Firefox dims placeholders by default; the token already is. */
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px var(--color-tone-polite-soft);
+  }
+
+  .form-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  /*
+   * Chrome paints its own background on autofilled fields and ignores
+   * background-color. The inset shadow is the only way to override it, and
+   * without this a saved email address lands in a pale yellow box halfway
+   * through a dark form.
+   */
+  .form-input:-webkit-autofill,
+  .form-input:-webkit-autofill:hover,
+  .form-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-text);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-surface-muted) inset;
+    caret-color: var(--color-text);
   }
 
   .table {

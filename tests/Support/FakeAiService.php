@@ -74,6 +74,67 @@ class FakeAiService extends AiService
     /**
      * Convenience for setting a well-formed step reply.
      */
+    // ------------------------------------------------ document extraction
+
+    /** The paths handed to extractFromDocument, in order. */
+    public array $documents = [];
+
+    /** The JSON Schemas the extraction calls carried. */
+    public array $schemas = [];
+
+    /**
+     * Stand in for a schema-constrained document read.
+     *
+     * The real call cannot come back off-shape, so the fake does not model a
+     * malformed reply -- the failure worth testing is a *well-shaped* reply with
+     * a wrong value in it, which is what the payload here supplies.
+     */
+    public function extractFromDocument(
+        string $prompt,
+        string $path,
+        array $schema,
+        array $options = []
+    ): array {
+        $this->prompts[] = $prompt;
+        $this->documents[] = $path;
+        $this->schemas[] = $schema;
+        $this->options[] = $options;
+
+        if ($this->throw !== null) {
+            $message = $this->throw;
+            $this->throw = null;
+
+            throw new RuntimeException($message);
+        }
+
+        $decoded = json_decode($this->reply, true);
+
+        return [
+            'data' => is_array($decoded) ? $decoded : [],
+            'model' => $this->model,
+            'input_tokens' => $this->inputTokens,
+            'output_tokens' => $this->outputTokens,
+        ];
+    }
+
+    /** The schema the most recent extraction call carried. */
+    public function lastSchema(): ?array
+    {
+        return $this->schemas === [] ? null : $this->schemas[count($this->schemas) - 1];
+    }
+
+    /** Queue a well-formed extraction reply. */
+    public function replyWithJson(array $payload): void
+    {
+        $this->reply = (string) json_encode($payload);
+    }
+
+    /** Queue a failure on the next call. */
+    public function failWith(string $message): void
+    {
+        $this->throw = $message;
+    }
+
     public function replyWithStep(string $subject, string $body): void
     {
         $this->reply = (string) json_encode(['subject' => $subject, 'body' => $body]);

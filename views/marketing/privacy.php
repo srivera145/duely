@@ -189,7 +189,7 @@ $updatedLabel = date('j F Y', strtotime($updatedOn));
             </p>
         </article>
 
-        <article>
+        <article id="ai">
             <h2 class="text-2xl font-semibold tracking-tight text-text-strong">The writing assistant</h2>
             <p class="mt-4 leading-relaxed text-text-muted">
                 If you ask Duely to help reword a reminder, the template is sent to Anthropic's API
@@ -202,6 +202,49 @@ $updatedLabel = date('j F Y', strtotime($updatedOn));
                 Nothing is sent anywhere unless you press the button, and the result is shown to you
                 as a suggestion &mdash; it is never saved into a live sequence on its own.
             </p>
+        </article>
+
+        <article>
+            <h2 class="text-2xl font-semibold tracking-tight text-text-strong">Reading an invoice you upload</h2>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                Duely can read an invoice off a PDF or a photo so you do not have to type it in.
+                This one works differently from the writing assistant above, and the difference
+                matters enough to spell out.
+            </p>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                To read the document, Duely sends <strong class="text-text-strong">the document
+                itself</strong> to Anthropic. Whatever is printed on it goes too &mdash; your
+                client's name, the amount, their address if it is on there. Nothing is stripped
+                first, because the details are the thing being read.
+            </p>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                So it is off until you turn it on. A workspace has to switch it on deliberately,
+                after being told plainly what is sent, and can switch it off again at any time.
+                If you never use it, no invoice document ever leaves this server.
+            </p>
+            <ul class="mt-5 space-y-3">
+                <?php
+                $extractionFacts = [
+                    'The file is deleted as soon as it is read.' => 'It is held only for the
+                        seconds it takes to send, and never written to disk here.',
+                    'Nothing is saved from it automatically.' => 'What comes back is filled into
+                        the invoice form for you to check. An invoice exists only once you save it.',
+                    'Anthropic does not train on it.' => 'Duely uses the paid API, where inputs
+                        are not used to train models.',
+                    'It counts against the same daily limit.' => 'Reading documents and rewriting
+                        reminders share one budget of twenty calls a workspace a day.',
+                ];
+                foreach ($extractionFacts as $heading => $body):
+                ?>
+                <li class="flex gap-4">
+                    <span class="mt-2 h-2 w-2 shrink-0 rounded-full bg-brand" aria-hidden="true"></span>
+                    <div>
+                        <h3 class="font-medium text-text-strong"><?= $e($heading) ?></h3>
+                        <p class="mt-1 leading-relaxed text-text-muted"><?= $e($body) ?></p>
+                    </div>
+                </li>
+                <?php endforeach; ?>
+            </ul>
         </article>
 
         <article>

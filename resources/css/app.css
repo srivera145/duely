@@ -20,6 +20,11 @@
  * about 2.5:1 and fails at any size.
  */
 :root {
+  /* Tells the browser to render native widgets dark: select dropdowns,
+     date pickers, scrollbars and the autofill menu. Without it a dark
+     form opens a white dropdown, which no stylesheet can reach. */
+  color-scheme: dark;
+
   --color-brand: #14b8a6;
   --color-brand-hover: #2dd4bf;
   /* Not #042F2A. The brief asked for 7:1 against the fill and that value only
@@ -109,6 +114,8 @@
  * white.
  */
 [data-theme="light"] {
+  color-scheme: light;
+
   /* The dark-mode teal #14B8A6 manages only about 2.5:1 against white, which
      fails AA both as link text and under a white label on a filled button.
      #0F766E clears 5.4:1 in both directions, which is what lets one token do

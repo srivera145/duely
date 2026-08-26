@@ -36,6 +36,10 @@ class SettingsController extends Controller
             'metaDescription' => 'Connect the mailbox Duely sends invoice reminders from.',
             'account' => $this->accounts->formState($tenantId, $user),
             'providers' => ProviderPresets::catalogue(),
+            // Connecting a mailbox is the highest-effort step in the product and
+            // the page ended at the moment it succeeded. The wizard already
+            // knows what comes next; the page just has to say so.
+            'onboarding' => (new \Keel\App\Services\OnboardingService())->progress($tenantId),
             'user' => [
                 'name' => (string) ($user['name'] ?? ''),
                 'email' => (string) $user['email'],

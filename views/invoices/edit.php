@@ -7,6 +7,11 @@ $clients = $clients ?? [];
 $chase = $chase ?? null;
 $isNew = $invoice === null;
 
+// Fields read off an uploaded document. Suggestions, nothing more: the form is
+// the review step, and the user is the one who decides they are right.
+$draft = $draft ?? ['values' => [], 'confidence' => null, 'notes' => null, 'warnings' => []];
+$suggested = static fn (string $field): string => (string) ($draft['values'][$field] ?? '');
+
 $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 
 $amountValue = '';
@@ -53,6 +58,27 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
         </div>
         <?php endif; ?>
 
+        <?php if ($isNew && $draft['values'] !== []): ?>
+        <div class="mb-6 rounded-xl border <?= $draft['warnings'] === [] ? 'border-brand bg-brand/5' : 'border-tone-firm-border bg-tone-firm-soft' ?> p-5">
+            <p class="font-semibold text-text-strong">
+                Read from your document<?= $draft['confidence'] !== null ? ' — ' . $e($draft['confidence']) . ' confidence' : '' ?>
+            </p>
+            <p class="mt-1 text-sm text-text-muted">
+                Nothing is saved yet. Check every field, then save.
+            </p>
+            <?php if ($draft['notes'] !== null): ?>
+            <p class="mt-2 text-sm text-text-muted"><?= $e($draft['notes']) ?></p>
+            <?php endif; ?>
+            <?php if ($draft['warnings'] !== []): ?>
+            <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-tone-firm">
+                <?php foreach ($draft['warnings'] as $warning): ?>
+                <li><?= $e($warning) ?></li>
+                <?php endforeach; ?>
+            </ul>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <form id="invoice-form" class="space-y-6" novalidate>
             <input type="hidden" name="id" value="<?= $isNew ? '' : (int) $invoice['id'] ?>">
 
@@ -61,7 +87,7 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
                     <div>
                         <label for="number" class="block text-sm font-medium text-text">Invoice number</label>
                         <input type="text" id="number" name="number" required
-                               value="<?= $isNew ? '' : $e($invoice['number']) ?>"
+                               value="<?= $isNew ? $e($suggested('number')) : $e($invoice['number']) ?>"
                                placeholder="INV-1001" class="form-input mt-1 w-full font-mono">
                         <p class="mt-1 text-xs text-text-muted" data-error-for="number"></p>
                     </div>
@@ -83,7 +109,7 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
                     <div>
                         <label for="amount" class="block text-sm font-medium text-text">Amount</label>
                         <input type="text" id="amount" name="amount" required
-                               value="<?= $e($amountValue) ?>"
+                               value="<?= $isNew ? $e($suggested('amount')) : $e($amountValue) ?>"
                                placeholder="3,200.00" class="form-input mt-1 w-full font-mono">
                         <p class="mt-1 text-xs text-text-muted" data-error-for="amount">
                             Symbols and commas are fine.
@@ -92,20 +118,20 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
                     <div>
                         <label for="currency" class="block text-sm font-medium text-text">Currency</label>
                         <input type="text" id="currency" name="currency" maxlength="3"
-                               value="<?= $isNew ? 'USD' : $e($invoice['currency']) ?>"
+                               value="<?= $isNew ? $e($suggested('currency') ?: 'USD') : $e($invoice['currency']) ?>"
                                class="form-input mt-1 w-full font-mono uppercase">
                     </div>
                     <div>
                         <label for="issue_date" class="block text-sm font-medium text-text">Issue date</label>
                         <input type="text" id="issue_date" name="issue_date"
-                               value="<?= $isNew ? '' : $e($invoice['issue_date']) ?>"
+                               value="<?= $isNew ? $e($suggested('issue_date')) : $e($invoice['issue_date']) ?>"
                                placeholder="2026-08-01" class="form-input mt-1 w-full font-mono">
                         <p class="mt-1 text-xs text-text-muted" data-error-for="issue_date"></p>
                     </div>
                     <div>
                         <label for="due_date" class="block text-sm font-medium text-text">Due date</label>
                         <input type="text" id="due_date" name="due_date" required
-                               value="<?= $isNew ? '' : $e($invoice['due_date']) ?>"
+                               value="<?= $isNew ? $e($suggested('due_date')) : $e($invoice['due_date']) ?>"
                                placeholder="2026-08-31" class="form-input mt-1 w-full font-mono">
                         <p class="mt-1 text-xs text-text-muted" data-error-for="due_date">
                             Reminders are timed from this date.

@@ -13,6 +13,7 @@ use Keel\App\Controllers\FileController;
 use Keel\App\Controllers\HealthController;
 use Keel\App\Controllers\ImportController;
 use Keel\App\Controllers\InvoiceController;
+use Keel\App\Controllers\InvoiceExtractionController;
 use Keel\App\Controllers\LlmsTxtController;
 use Keel\App\Controllers\MarketingController;
 use Keel\App\Controllers\ManifestController;
@@ -161,6 +162,12 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->post('/api/invoices/{id}/delete', [InvoiceController::class, 'destroy']);
 
             // Upload and validate are read-only; only commit writes.
+            // Reading an invoice document. Opt-in per workspace; the endpoint
+            // returns a draft and never writes an invoice.
+            $router->get('/api/invoices/extraction/status', [InvoiceExtractionController::class, 'status']);
+            $router->post('/api/invoices/extraction/consent', [InvoiceExtractionController::class, 'consent']);
+            $router->post('/api/invoices/extract', [InvoiceExtractionController::class, 'extract']);
+
             $router->post('/api/invoices/import/upload', [ImportController::class, 'upload']);
             $router->post('/api/invoices/import/validate', [ImportController::class, 'validate']);
             $router->post('/api/invoices/import/commit', [ImportController::class, 'commit']);

@@ -36,6 +36,14 @@ class Mailer
             $mail->SMTPSecure = Env::get('MAIL_ENCRYPTION', 'tls');
             $mail->Port = (int) Env::get('MAIL_PORT', 587);
 
+            // PHPMailer defaults to a 300 second timeout, which PHP's
+            // max_execution_time reaches first and turns into a fatal error --
+            // a white screen on the sign-in page instead of "we could not send
+            // that". Anything under the execution limit lets the catch below
+            // do its job. A working submission server answers in well under a
+            // second; ten is generous.
+            $mail->Timeout = (int) Env::get('MAIL_TIMEOUT', 10);
+
             $mail->setFrom(Env::get('MAIL_FROM_ADDRESS'), Env::get('MAIL_FROM_NAME', 'App'));
             $mail->addAddress($toEmail, $toName);
 

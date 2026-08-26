@@ -48,6 +48,43 @@ class InvoiceController extends Controller
     /**
      * GET /invoices/new
      */
+    /**
+     * The extracted fields carried over from a document read.
+     *
+     * Read one known key at a time and re-validated here, because a query
+     * string is user input whatever put it there.
+     *
+     * @return array{values:array<string,string>, confidence:?string, notes:?string, warnings:array<int,string>}
+     */
+    private function draftFromQuery(Request $request): array
+    {
+        $values = [];
+
+        foreach (['number', 'client_name', 'client_email', 'amount', 'currency', 'issue_date', 'due_date'] as $field) {
+            $value = trim((string) $request->input($field, ''));
+
+            if ($value !== '') {
+                $values[$field] = mb_substr($value, 0, 255);
+            }
+        }
+
+        $confidence = (string) $request->input('confidence', '');
+        $warnings = array_values(array_filter(
+            array_map(
+                static fn ($w): string => mb_substr(trim((string) $w), 0, 200),
+                (array) ($_GET['warning'] ?? [])
+            ),
+            static fn (string $w): bool => $w !== ''
+        ));
+
+        return [
+            'values' => $values,
+            'confidence' => in_array($confidence, ['high', 'medium', 'low'], true) ? $confidence : null,
+            'notes' => mb_substr(trim((string) $request->input('notes', '')), 0, 300) ?: null,
+            'warnings' => array_slice($warnings, 0, 6),
+        ];
+    }
+
     public function create(Request $request): void
     {
         $tenantId = TenantContext::requireId();
@@ -57,6 +94,10 @@ class InvoiceController extends Controller
             'invoice' => null,
             'clients' => Client::active($tenantId, 500),
             'chase' => null,
+            // A draft read off an uploaded document, if the user came that way.
+            // It is only ever a suggestion in the form -- the save path is the
+            // same one a hand-typed invoice takes, with the same validation.
+            'draft' => $this->draftFromQuery($request),
         ]);
     }
 
