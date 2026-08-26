@@ -16,17 +16,19 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-6xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Duely</p>
-                <h1 class="text-3xl font-bold text-text-strong">Clients</h1>
+        <?php
+        ob_start(); ?>
                 <p class="mt-2 text-sm text-text-muted"><?= (int) $total ?> in total</p>
-            </div>
+        <?php $pageSubtitle = ob_get_clean();
+        ob_start(); ?>
             <div class="flex flex-wrap gap-2">
                 <a href="/invoices/import" class="btn btn-secondary border border-card-border">Import CSV</a>
                 <a href="/clients/new" class="btn btn-primary">New client</a>
             </div>
-        </div>
+        <?php $pageActions = ob_get_clean();
+        $pageTitle = 'Clients';
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <form method="get" action="/clients" class="mb-4 flex flex-wrap items-end gap-3">
             <div class="min-w-[240px] flex-1">

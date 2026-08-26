@@ -11,10 +11,13 @@ $year = (int) date('Y');
     <div class="mx-auto max-w-6xl px-4 py-12">
         <div class="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div class="lg:col-span-2">
-                <a href="/" class="flex items-center gap-2 text-lg font-semibold text-text-strong">
-                    <span class="h-2.5 w-2.5 rounded-full bg-brand" aria-hidden="true"></span>
-                    Duely
-                </a>
+                <?php
+                // Room to breathe here, so the full lockup with its tagline.
+                $variant = 'lockup';
+                $size = 'md';
+                $link = true;
+                require __DIR__ . '/../../partials/logo.php';
+                ?>
                 <p class="mt-3 max-w-sm text-sm leading-relaxed text-text-muted">
                     Follow-ups for overdue invoices, sent from your own inbox — and stopped the
                     moment your client replies.

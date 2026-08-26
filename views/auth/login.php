@@ -39,17 +39,21 @@ $csrfToken = \Keel\Core\Csrf::token();
         <div class="mx-auto flex min-h-screen w-full max-w-sm items-center justify-center py-6">
             <section class="w-full rounded-2xl border border-card-border bg-card p-7 shadow-2xl sm:p-8">
 
-                <div class="mb-7 flex items-center gap-3">
-                    <a href="/" class="flex items-center gap-2 text-lg font-semibold text-text-strong">
-                        <span class="h-2.5 w-2.5 rounded-full bg-brand" aria-hidden="true"></span>
-                        Duely
-                    </a>
+                <div class="relative mb-7">
                     <button type="button"
-                            class="theme-toggle-button ml-auto"
+                            class="theme-toggle-button absolute right-0 top-0"
                             data-theme-toggle
                             aria-label="Switch theme">
                         <span data-theme-toggle-icon aria-hidden="true"></span>
                     </button>
+                    <div class="flex justify-center">
+                        <?php
+                        $variant = 'lockup';
+                        $size = 'lg';
+                        $link = false;
+                        require __DIR__ . '/../partials/logo.php';
+                        ?>
+                    </div>
                 </div>
 
                 <h1 class="text-3xl font-semibold tracking-tight text-text-strong">Sign in</h1>

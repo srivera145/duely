@@ -31,19 +31,22 @@ $tones = [
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-6xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Sequences</p>
-                <h1 class="text-3xl font-bold text-text-strong"><?= $e($sequence['name']) ?></h1>
+        <?php
+        ob_start(); ?>
                 <?php if ($activeChases > 0): ?>
                 <p class="mt-2 text-sm text-amber-400">
                     Running against <?= (int) $activeChases ?> invoice<?= $activeChases === 1 ? '' : 's' ?> right now.
                     Changes apply to reminders that have not been sent yet.
                 </p>
                 <?php endif; ?>
-            </div>
+        <?php $pageSubtitle = ob_get_clean();
+        ob_start(); ?>
             <a href="/sequences" class="text-sm text-text-muted hover:text-text-strong">Back to sequences</a>
-        </div>
+        <?php $pageActions = ob_get_clean();
+        $pageTitle = $e($sequence['name']);
+        $pageEyebrow = 'Sequences';
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <form id="sequence-form" class="space-y-6" novalidate>
             <input type="hidden" name="id" value="<?= (int) $sequence['id'] ?>">

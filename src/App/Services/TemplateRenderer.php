@@ -4,6 +4,7 @@ namespace Keel\App\Services;
 
 use DateTimeImmutable;
 use Keel\App\Models\Invoice;
+use Keel\Core\Env;
 
 /**
  * Renders a reminder template into the two parts every message is sent with:
@@ -312,7 +313,48 @@ class TemplateRenderer
         }
 
         return '<div style="font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Helvetica,Arial,sans-serif;'
-            . 'font-size:15px;line-height:1.6;color:#0A0A0A;">' . $html . '</div>';
+            . 'font-size:15px;line-height:1.6;color:#0A0A0A;">' . $html . self::emailFooter() . '</div>';
+    }
+
+    /**
+     * The sign-off block on a reminder.
+     *
+     * The light lockup, always — mail clients do not reliably honour
+     * prefers-color-scheme. `alt` is set because images are blocked by default
+     * nearly everywhere, and a reminder about money should not arrive with a
+     * broken-image icon where the sender's name goes.
+     *
+     * PNG, not the SVG: Gmail strips SVG entirely and Outlook has never
+     * supported it, so the vector would be a broken image for most recipients —
+     * and these go to the user's own clients. The file is 280px wide and
+     * displayed at 140 so it stays sharp on retina, and it is flattened onto
+     * white because dark-mode mail clients invert the body but not images,
+     * which would otherwise leave navy type on a dark ground.
+     *
+     * Regenerate from resources/images/brand/duely-logo.svg if the logo changes.
+     *
+     * Returns nothing when APP_URL is unset: a relative src in an email points
+     * at the recipient's mail host and is guaranteed to break.
+     */
+    public static function emailFooter(): string
+    {
+        $baseUrl = rtrim(trim((string) Env::get('APP_URL', '')), '/');
+
+        if ($baseUrl === '') {
+            return '';
+        }
+
+        // 140x86 keeps the lockup's real 420:257 ratio. Both attributes are set
+        // because Outlook sizes from the attributes, not the CSS.
+        return '<div style="margin-top:32px;padding-top:20px;'
+            . 'border-top:1px solid #E5E5E5;">'
+            . '<a href="' . htmlspecialchars($baseUrl, ENT_QUOTES, 'UTF-8') . '" '
+            . 'style="text-decoration:none;">'
+            . '<img src="' . htmlspecialchars($baseUrl . '/images/brand/duely-logo-email.png', ENT_QUOTES, 'UTF-8') . '" '
+            . 'alt="Duely" width="140" height="86" '
+            . 'style="display:block;width:140px;height:auto;border:0;">'
+            . '</a>'
+            . '</div>';
     }
 
     /**

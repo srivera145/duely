@@ -397,9 +397,11 @@ class WaitlistService
     {
         $safeUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
         $safeUnsubscribe = htmlspecialchars($unsubscribeUrl, ENT_QUOTES, 'UTF-8');
+        $logo = $this->emailLogo();
 
         return <<<HTML
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; color: #171717;">
+            {$logo}
             <h2 style="margin: 0 0 16px; font-size: 20px; color: #0a0a0a;">One click and you are on the list</h2>
             <p style="margin: 0 0 20px; font-size: 15px; line-height: 1.6; color: #525252;">
                 Someone entered this address on the Duely waitlist. If that was you, confirm below
@@ -416,6 +418,35 @@ class WaitlistService
             </p>
         </div>
         HTML;
+    }
+
+    /**
+     * The lockup at the top of a waitlist email.
+     *
+     * Light variant only and always with alt text: mail clients block images
+     * by default. Omitted entirely when APP_URL is unset, since a relative src
+     * would resolve against the recipient's mail host.
+     *
+     * PNG, not the SVG: Gmail strips SVG entirely and Outlook has never
+     * supported it, so the vector would be a broken image for most recipients —
+     * and these go to the user's own clients. The file is 280px wide and
+     * displayed at 140 so it stays sharp on retina, and it is flattened onto
+     * white because dark-mode mail clients invert the body but not images,
+     * which would otherwise leave navy type on a dark ground.
+     *
+     * Regenerate from resources/images/brand/duely-logo.svg if the logo changes.
+     */
+    private function emailLogo(): string
+    {
+        $baseUrl = rtrim(trim((string) Env::get('APP_URL', '')), '/');
+
+        if ($baseUrl === '') {
+            return '';
+        }
+
+        return '<img src="' . htmlspecialchars($baseUrl . '/images/brand/duely-logo-email.png', ENT_QUOTES, 'UTF-8') . '" '
+            . 'alt="Duely" width="140" height="86" '
+            . 'style="display:block;width:140px;height:auto;border:0;margin:0 0 24px;">';
     }
 
     private function normaliseEmail(string $email): string

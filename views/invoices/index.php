@@ -80,10 +80,8 @@ $queryWith = static function (array $overrides) use ($filters): string {
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-7xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Duely</p>
-                <h1 class="text-3xl font-bold text-text-strong">Invoices</h1>
+        <?php
+        ob_start(); ?>
                 <?php if ($outstanding !== []): ?>
                 <p class="mt-2 text-sm text-text-muted">
                     Outstanding:
@@ -92,12 +90,16 @@ $queryWith = static function (array $overrides) use ($filters): string {
                     <?php endforeach; ?>
                 </p>
                 <?php endif; ?>
-            </div>
+        <?php $pageSubtitle = ob_get_clean();
+        ob_start(); ?>
             <div class="flex flex-wrap gap-2">
                 <a href="/invoices/import" class="btn btn-secondary border border-card-border">Import CSV</a>
                 <a href="/invoices/new" class="btn btn-primary">New invoice</a>
             </div>
-        </div>
+        <?php $pageActions = ob_get_clean();
+        $pageTitle = 'Invoices';
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <!-- Status tabs -->
         <div class="mb-4 flex flex-wrap gap-1 border-b border-card-border" role="tablist">

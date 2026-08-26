@@ -59,10 +59,13 @@ $hasDockerCompose = $hasDockerCompose ?? false;
     <div class="mx-auto max-w-7xl px-4 pb-6 pt-8 sm:px-6 sm:pt-10 lg:px-8 lg:pt-12">
         <header class="docs-nav mb-6 rounded-3xl p-4 sm:p-5">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <a href="/" class="inline-flex items-center gap-3 rounded-full">
-                    <img src="/images/brand/duely-mark.svg" alt="" aria-hidden="true" class="h-4 w-auto" loading="eager" decoding="async">
-                    <span class="text-lg font-semibold">Duely</span>
-                </a>
+                <?php
+                $variant = 'mark';
+                $size = 'sm';
+                $link = true;
+                $wordmark = true;
+                require __DIR__ . '/../partials/logo.php';
+                ?>
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="button" class="theme-toggle-button" data-theme-toggle>
                         <span data-theme-toggle-icon aria-hidden="true"></span>

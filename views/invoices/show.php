@@ -36,12 +36,8 @@ $eventStyles = [
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-4xl px-4 py-10" data-invoice-id="<?= (int) $invoice['id'] ?>">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">
-                    <a href="/invoices" class="hover:underline">Invoices</a>
-                </p>
-                <h1 class="text-3xl font-bold text-text-strong"><?= $e($invoice['number']) ?></h1>
+        <?php
+        ob_start(); ?>
                 <p class="mt-2 text-sm text-text-muted">
                     <?= $e($money((int) $invoice['amount_cents'], (string) $invoice['currency'])) ?>
                     · <?= $e($invoice['client_name']) ?>
@@ -53,7 +49,8 @@ $eventStyles = [
                     <?= $e(\Keel\App\Services\RelativeTime::overdueLabel($daysOverdue)) ?>
                 </p>
                 <?php endif; ?>
-            </div>
+        <?php $pageSubtitle = ob_get_clean();
+        ob_start(); ?>
             <div class="flex flex-wrap gap-2">
                 <a href="/invoices/<?= (int) $invoice['id'] ?>" class="btn btn-secondary border border-card-border btn-sm">Edit</a>
                 <?php if ($isOpen): ?>
@@ -62,7 +59,12 @@ $eventStyles = [
                 </button>
                 <?php endif; ?>
             </div>
-        </div>
+        <?php $pageActions = ob_get_clean();
+        $pageTitle = $e($invoice['number']);
+        $pageEyebrow = 'Invoices';
+        $pageEyebrowHref = '/invoices';
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <!-- Progress rail. Built from the sequence's own offsets, so a tenant
              who edits their ladder sees their ladder rather than ours. -->

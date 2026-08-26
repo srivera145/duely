@@ -26,18 +26,21 @@ $steps = [
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-5xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Invoices</p>
-                <h1 class="text-3xl font-bold text-text-strong">Import from a spreadsheet</h1>
+        <?php
+        ob_start(); ?>
                 <p class="mt-2 max-w-2xl text-sm text-text-muted">
                     Export your sheet as CSV and drop it in. Duely reads the common column names on its own,
                     copes with mixed date and currency formats, and shows you exactly what will happen before
                     anything is saved.
                 </p>
-            </div>
+        <?php $pageSubtitle = ob_get_clean();
+        ob_start(); ?>
             <a href="/invoices" class="text-sm text-text-muted hover:text-text-strong">Back to invoices</a>
-        </div>
+        <?php $pageActions = ob_get_clean();
+        $pageTitle = 'Import from a spreadsheet';
+        $pageEyebrow = 'Invoices';
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <!-- Step indicator -->
         <ol class="mb-8 flex flex-wrap items-center gap-2 text-sm" id="import-steps">

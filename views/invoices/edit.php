@@ -26,18 +26,19 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-3xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Invoices</p>
-                <h1 class="text-3xl font-bold text-text-strong">
-                    <?= $isNew ? 'New invoice' : $e($invoice['number']) ?>
-                </h1>
+        <?php
+        ob_start(); ?>
                 <?php if (!$isNew && $invoice['status'] === 'open' && $daysOverdue > 0): ?>
                 <p class="mt-2 text-sm <?= \Keel\App\Services\ToneRamp::text(\Keel\App\Services\ToneRamp::forDaysOverdue((int) $daysOverdue)) ?>"><?= (int) $daysOverdue ?> days overdue</p>
                 <?php endif; ?>
-            </div>
+        <?php $pageSubtitle = ob_get_clean();
+        ob_start(); ?>
             <a href="/invoices" class="text-sm text-text-muted hover:text-text-strong">Back to invoices</a>
-        </div>
+        <?php $pageActions = ob_get_clean();
+        $pageTitle = $isNew ? 'New invoice' : $e($invoice['number']);
+        $pageEyebrow = 'Invoices';
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <?php if (!$isNew && $chase !== null): ?>
         <div class="mb-6 rounded-xl border border-card-border bg-card p-4 text-sm">

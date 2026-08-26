@@ -20,12 +20,19 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-3xl px-4 py-10" id="onboarding">
 
-        <div class="mb-8">
-            <p class="text-sm text-text-muted">Duely</p>
+        <div class="mb-8 text-center">
+            <div class="mb-6 flex justify-center">
+                <?php
+                $variant = 'lockup';
+                $size = 'lg';
+                $link = false;
+                require __DIR__ . '/../partials/logo.php';
+                ?>
+            </div>
             <h1 class="text-3xl font-bold text-text-strong">
                 <?= $progress['complete'] ? 'You are all set' : 'Getting started' ?>
             </h1>
-            <p class="mt-2 max-w-xl text-sm text-text-muted">
+            <p class="mx-auto mt-2 max-w-xl text-sm text-text-muted">
                 <?= $progress['complete']
                     ? 'Duely is chasing your overdue invoices. You can close this page.'
                     : 'Four steps and Duely starts following up for you. You can stop and come back at any point.' ?>

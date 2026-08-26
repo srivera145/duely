@@ -180,6 +180,10 @@
 }
 
 @layer components {
+  /* Load-bearing for views/partials/logo.php: the lockup ships as two files
+     and CSS picks one, so the correct variant is painted on the first
+     frame. Swapping an <img> src from script shows the wrong logo first.
+     partials/head.php stamps data-theme before paint. Do not delete. */
   .logo-light-mode {
     display: none;
   }

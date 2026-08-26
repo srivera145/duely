@@ -15,10 +15,15 @@ $current = $current ?? '';
 <header class="border-b border-card-border">
     <nav class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-4"
          aria-label="Main">
-        <a href="/" class="flex items-center gap-2 text-lg font-semibold text-text-strong">
-            <span class="h-2.5 w-2.5 rounded-full bg-brand" aria-hidden="true"></span>
-            Duely
-        </a>
+        <?php
+        // The mark plus the word, not the stacked lockup: the lockup's tagline
+        // stops resolving below about 56px and this bar is 24px of content.
+        $variant = 'mark';
+        $size = 'sm';
+        $link = true;
+        $wordmark = true;
+        require __DIR__ . '/../../partials/logo.php';
+        ?>
 
         <div class="flex items-center gap-4 text-sm">
             <a href="/how-it-works"

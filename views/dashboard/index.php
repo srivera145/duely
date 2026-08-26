@@ -26,19 +26,17 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-7xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Duely</p>
-                <h1 class="text-3xl font-bold text-text-strong">Dashboard</h1>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a href="/invoices" class="text-sm text-text-muted hover:text-text-strong">Invoices</a>
-                <a href="/clients" class="text-sm text-text-muted hover:text-text-strong">Clients</a>
-                <a href="/sequences" class="text-sm text-text-muted hover:text-text-strong">Sequences</a>
-                <a href="/settings/email" class="text-sm text-text-muted hover:text-text-strong">Email</a>
-                <a href="/invoices/import" class="btn btn-primary btn-sm">Import CSV</a>
-            </div>
-        </div>
+        <?php
+        // The nav links live in the partial; only the primary action is passed,
+        // or they would render twice.
+        ob_start(); ?>
+            <a href="/invoices/import" class="btn btn-primary btn-sm">Import CSV</a>
+        <?php $pageActions = ob_get_clean();
+        $pageTitle = 'Dashboard';
+        // The one page that carries the product nav today.
+        $showNav = true;
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <?php if (!$onboarding['complete']): ?>
         <div class="mb-6 rounded-xl border border-card-border bg-card p-4">

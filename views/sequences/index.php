@@ -25,17 +25,19 @@ $toneLabels = [
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-4xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Duely</p>
-                <h1 class="text-3xl font-bold text-text-strong">Reminder sequences</h1>
+        <?php
+        ob_start(); ?>
                 <p class="mt-2 max-w-2xl text-sm text-text-muted">
                     When an invoice goes past its due date, Duely works down this ladder — a gentle nudge first,
                     a firmer note later. Most people leave it exactly as it is.
                 </p>
-            </div>
+        <?php $pageSubtitle = ob_get_clean();
+        ob_start(); ?>
             <a href="/invoices" class="text-sm text-text-muted hover:text-text-strong">Back to invoices</a>
-        </div>
+        <?php $pageActions = ob_get_clean();
+        $pageTitle = 'Reminder sequences';
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <?php if (!$hasAny): ?>
         <div class="rounded-xl border border-card-border bg-card p-10">

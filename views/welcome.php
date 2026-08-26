@@ -330,8 +330,13 @@ $quickstartSteps = [
             <nav class="keel-card rounded-full px-4 py-3 sm:px-6" aria-label="Primary">
                 <div class="flex items-center justify-between gap-4">
                     <a href="/" class="keel-ring keel-text-strong inline-flex items-center gap-3 rounded-full text-sm font-semibold uppercase tracking-[0.3em]">
-                        <img src="/images/brand/duely-mark.svg" alt="" aria-hidden="true" class="h-4 w-auto" loading="eager" decoding="async">
-                        <span>Duely</span>
+                        <?php
+                        $variant = 'mark';
+                        $size = 'sm';
+                        $link = false;
+                        $wordmark = true;
+                        require __DIR__ . '/partials/logo.php';
+                        ?>
                     </a>
 
                     <button type="button" id="mobile-menu-button" class="keel-ring keel-nav-link keel-subtle-border inline-flex items-center justify-center rounded-full border px-3 py-2 text-sm md:hidden" aria-expanded="false" aria-controls="mobile-menu">
