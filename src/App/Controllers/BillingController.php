@@ -154,27 +154,41 @@ class BillingController extends Controller
     /**
      * The Stripe price to charge.
      *
-     * A workspace holding a founding place is billed against the grandfathered
-     * price id, so a later increase to the standard Solo price leaves it alone.
+     * A workspace holding a founding place — or one about to claim the last of
+     * them — is billed against the grandfathered price id for whichever plan it
+     * is buying, so a later increase to the standard price leaves it alone.
+     * This is deliberately not Solo-only: upgrading should not cost someone
+     * their founding rate.
+     *
+     * A plan with no grandfathered price configured falls back to its standard
+     * one, so half-configured Stripe accounts overcharge nobody and simply do
+     * not grandfather.
      */
     private function priceIdFor(int $tenantId, string $plan): string
     {
-        if ($plan === PlanService::PLAN_STUDIO) {
-            return trim((string) Env::get('STRIPE_PRICE_STUDIO_MONTHLY', ''));
-        }
+        $standard = trim((string) Env::get(
+            $plan === PlanService::PLAN_STUDIO
+                ? 'STRIPE_PRICE_STUDIO_MONTHLY'
+                : 'STRIPE_PRICE_SOLO_MONTHLY',
+            ''
+        ));
 
         $status = $this->plans->status($tenantId);
         $availability = $this->plans->foundingAvailability();
 
-        if ($status['is_founding'] || $availability['remaining'] > 0) {
-            $founding = trim((string) Env::get('STRIPE_PRICE_FOUNDING_MONTHLY', ''));
-
-            if ($founding !== '') {
-                return $founding;
-            }
+        if (!$status['is_founding'] && $availability['remaining'] < 1) {
+            return $standard;
         }
 
-        return trim((string) Env::get('STRIPE_PRICE_SOLO_MONTHLY', ''));
+        $envKey = PlanService::foundingPriceEnvKey($plan);
+
+        if ($envKey === null) {
+            return $standard;
+        }
+
+        $founding = trim((string) Env::get($envKey, ''));
+
+        return $founding !== '' ? $founding : $standard;
     }
 
     private function currentUser(): array

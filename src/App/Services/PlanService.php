@@ -36,6 +36,36 @@ class PlanService
     public const TRIAL_DAYS = 14;
 
     /** What the founding cohort pays, for life. */
+    /**
+     * What a founding workspace pays, per plan.
+     *
+     * These are the launch-era list prices. They are identical to the current
+     * list prices, which is the point: a founding place is worth nothing today
+     * and everything the day prices go up. Raise `price_cents` in PLANS and
+     * leave these alone, and the first fifty accounts keep what they were
+     * promised.
+     *
+     * Solo-only grandfathering was the first shape of this, and it had a hole:
+     * a founding member who needed a second mailbox paid the new Studio price
+     * *and* lost their discount, so growing cost them twice. The promise on the
+     * pricing page is "whatever we charge later" — it does not say "unless you
+     * upgrade".
+     */
+    private const FOUNDING_PRICES = [
+        self::PLAN_SOLO => 1900,
+        self::PLAN_STUDIO => 3900,
+    ];
+
+    /**
+     * The Stripe price to bill a founding workspace against, per plan. A plan
+     * with no configured founding price falls back to its standard one.
+     */
+    private const FOUNDING_PRICE_ENV = [
+        self::PLAN_SOLO => 'STRIPE_PRICE_FOUNDING_MONTHLY',
+        self::PLAN_STUDIO => 'STRIPE_PRICE_FOUNDING_STUDIO_MONTHLY',
+    ];
+
+    /** @deprecated Use foundingPriceFor(). Kept so existing callers still resolve. */
     public const FOUNDING_PRICE_CENTS = 1900;
     public const FOUNDING_SLOTS = 50;
 
@@ -267,8 +297,15 @@ class PlanService
 
         $organization = $this->organization($tenantId);
 
-        if ($organization !== null && (bool) $organization['is_founding'] && $plan === self::PLAN_SOLO) {
-            return self::FOUNDING_PRICE_CENTS;
+        if ($organization !== null && (bool) $organization['is_founding']) {
+            $founding = self::foundingPriceFor($plan);
+
+            // A founding price above list would mean prices had gone *down*.
+            // Charging the higher of the two would be a punishment for having
+            // signed up early, so take whichever is lower.
+            if ($founding !== null) {
+                return min($founding, $listPrice);
+            }
         }
 
         return $listPrice;
@@ -363,6 +400,22 @@ class PlanService
 
             return ['claimed' => true, 'slot' => $slot, 'reason' => null];
         });
+    }
+
+    /**
+     * The launch-era price for a plan, or null if it has none.
+     */
+    public static function foundingPriceFor(string $plan): ?int
+    {
+        return self::FOUNDING_PRICES[$plan] ?? null;
+    }
+
+    /**
+     * The env key holding the grandfathered Stripe price id for a plan.
+     */
+    public static function foundingPriceEnvKey(string $plan): ?string
+    {
+        return self::FOUNDING_PRICE_ENV[$plan] ?? null;
     }
 
     /**
@@ -482,9 +535,11 @@ class PlanService
                 'features' => $definition['features'],
                 // The offer is only advertised while places remain, and only to
                 // someone who does not already hold one.
-                'founding_available' => $key === self::PLAN_SOLO
+                'founding_available' => self::foundingPriceFor($key) !== null
                     && !$isFounding
                     && $availability['remaining'] > 0,
+                // Already holding a place, on a plan the place covers.
+                'founding_locked' => $isFounding && self::foundingPriceFor($key) !== null,
             ];
         }
 

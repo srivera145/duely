@@ -75,7 +75,7 @@ $plans = [
         ?>
         <p class="mx-auto mt-8 inline-flex max-w-full items-center gap-2 rounded-full border border-brand/40 bg-brand/10 px-4 py-2 text-left text-sm text-brand">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden="true"></span>
-            <span><?= $e($foundingLabel) ?> &mdash; they keep $19 a month for good</span>
+            <span><?= $e($foundingLabel) ?> &mdash; they keep today's price for good, on whichever plan they are on</span>
         </p>
         <?php endif; ?>
     </section>
@@ -90,7 +90,7 @@ $plans = [
                     <h2 class="text-sm font-medium uppercase tracking-wide text-text-muted">
                         <?= $e($plan['name']) ?>
                     </h2>
-                    <?php if ($plan['featured'] && $founding !== null && $founding['remaining'] > 0): ?>
+                    <?php if ($plan['price'] !== 'Free' && $founding !== null && $founding['remaining'] > 0): ?>
                     <span class="rounded-full bg-brand px-2.5 py-0.5 text-xs font-semibold text-brand-contrast">
                         Founding price
                     </span>
@@ -136,8 +136,10 @@ $plans = [
                 <?php
                 $notes = [
                     'What is a founding place?' => 'The first fifty accounts that start paying keep '
-                        . '$19 a month for as long as they stay subscribed, whatever the price '
-                        . 'becomes later. There are fifty and there will not be fifty-one.',
+                        . 'today\'s price for as long as they stay subscribed, whatever the price '
+                        . 'becomes later — and that holds on whichever plan they are on, so moving '
+                        . 'up to Studio never costs you the rate you were given. There are fifty '
+                        . 'and there will not be fifty-one.',
                     'What happens if I downgrade?' => 'Nothing is deleted. If you drop below the '
                         . 'limit, Duely pauses the newest chases and tells you exactly which ones. '
                         . 'The oldest keep running — they are the ones closest to being paid.',

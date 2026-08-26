@@ -56,6 +56,8 @@ class BillingAndOnboardingFeatureTest extends TestCase
         $_SERVER['STRIPE_PRICE_STUDIO_MONTHLY'] = 'price_studio_standard';
         $_ENV['STRIPE_PRICE_FOUNDING_MONTHLY'] = 'price_founding_locked';
         $_SERVER['STRIPE_PRICE_FOUNDING_MONTHLY'] = 'price_founding_locked';
+        $_ENV['STRIPE_PRICE_FOUNDING_STUDIO_MONTHLY'] = 'price_founding_studio_locked';
+        $_SERVER['STRIPE_PRICE_FOUNDING_STUDIO_MONTHLY'] = 'price_founding_studio_locked';
 
         $this->user = $this->createUser(['email' => 'ada@studio.test', 'name' => 'Ada Lovelace']);
         $this->tenantId = TenantContext::forUser((int) $this->user['id']);
@@ -70,6 +72,7 @@ class BillingAndOnboardingFeatureTest extends TestCase
             $_ENV['STRIPE_PRICE_SOLO_MONTHLY'], $_SERVER['STRIPE_PRICE_SOLO_MONTHLY'],
             $_ENV['STRIPE_PRICE_STUDIO_MONTHLY'], $_SERVER['STRIPE_PRICE_STUDIO_MONTHLY'],
             $_ENV['STRIPE_PRICE_FOUNDING_MONTHLY'], $_SERVER['STRIPE_PRICE_FOUNDING_MONTHLY'],
+            $_ENV['STRIPE_PRICE_FOUNDING_STUDIO_MONTHLY'], $_SERVER['STRIPE_PRICE_FOUNDING_STUDIO_MONTHLY'],
         );
 
         parent::tearDown();
@@ -238,20 +241,103 @@ class BillingAndOnboardingFeatureTest extends TestCase
         self::assertSame('price_founding_locked', $this->priceIdFor($this->tenantId, PlanService::PLAN_SOLO));
         self::assertSame(1900, $this->plans->priceFor($this->tenantId, PlanService::PLAN_SOLO));
 
-        // Studio is never part of the offer.
-        self::assertSame('price_studio_standard', $this->priceIdFor($this->tenantId, PlanService::PLAN_STUDIO));
+        // And the founding rate follows them up the ladder rather than being
+        // forfeited the moment they need a second mailbox.
+        self::assertSame(
+            'price_founding_studio_locked',
+            $this->priceIdFor($this->tenantId, PlanService::PLAN_STUDIO)
+        );
         self::assertSame(3900, $this->plans->priceFor($this->tenantId, PlanService::PLAN_STUDIO));
+    }
+
+    public function testAFoundingMemberUpgradingToStudioKeepsTheFoundingRate(): void
+    {
+        // Founding by way of a Solo checkout, exactly as a launch signup would be.
+        $this->sendWebhook($this->checkoutEvent('evt_upgrade_path', $this->tenantId));
+
+        self::assertTrue($this->plans->status($this->tenantId, $this->now)['is_founding']);
+
+        // Now they need a second mailbox. Before this behaviour existed, growing
+        // cost them their rate: they paid the new Studio list price and the
+        // founding flag stopped meaning anything.
+        self::assertSame(
+            'price_founding_studio_locked',
+            $this->priceIdFor($this->tenantId, PlanService::PLAN_STUDIO),
+            'an upgrade must not forfeit the founding price'
+        );
+
+        $this->sendWebhook($this->subscriptionEvent(
+            'evt_upgrade_studio',
+            'customer.subscription.updated',
+            'sub_upgrade_path',
+            'active',
+            PlanService::PLAN_STUDIO
+        ));
+
+        $status = $this->plans->status($this->tenantId, $this->now);
+
+        self::assertSame(PlanService::PLAN_STUDIO, $status['effective_plan']);
+        self::assertTrue($status['is_founding'], 'the place is kept across a plan change');
+        self::assertSame(3900, $status['price_cents']);
+
+        // And dropping back to Solo still lands on the Solo founding rate.
+        self::assertSame(1900, $this->plans->priceFor($this->tenantId, PlanService::PLAN_SOLO));
+    }
+
+    public function testANonFoundingWorkspaceIsBilledTheStandardPriceOnBothPlans(): void
+    {
+        $this->fillFoundingSlots(50);
+
+        self::assertSame('price_solo_standard', $this->priceIdFor($this->tenantId, PlanService::PLAN_SOLO));
+        self::assertSame('price_studio_standard', $this->priceIdFor($this->tenantId, PlanService::PLAN_STUDIO));
+        self::assertSame(1900, $this->plans->priceFor($this->tenantId, PlanService::PLAN_SOLO));
+        self::assertSame(3900, $this->plans->priceFor($this->tenantId, PlanService::PLAN_STUDIO));
+    }
+
+    public function testAnUnconfiguredFoundingPriceFallsBackRatherThanOvercharging(): void
+    {
+        // A half-configured Stripe account must not send a founding member to a
+        // blank price id, and must not quietly bill them the standard rate
+        // under a founding badge either — it simply does not grandfather.
+        unset($_ENV['STRIPE_PRICE_FOUNDING_STUDIO_MONTHLY'], $_SERVER['STRIPE_PRICE_FOUNDING_STUDIO_MONTHLY']);
+
+        $this->sendWebhook($this->checkoutEvent('evt_no_studio_price', $this->tenantId));
+
+        self::assertSame(
+            'price_studio_standard',
+            $this->priceIdFor($this->tenantId, PlanService::PLAN_STUDIO)
+        );
+    }
+
+    public function testTheFoundingPriceIsNeverAboveTheListPrice(): void
+    {
+        // If list prices ever fall below the launch-era ones, a founding member
+        // must get the lower number. Being early should never cost more.
+        foreach ([PlanService::PLAN_SOLO, PlanService::PLAN_STUDIO] as $plan) {
+            self::assertLessThanOrEqual(
+                $this->plans->catalogue($this->tenantId)[$plan]['list_price_cents'],
+                PlanService::foundingPriceFor($plan),
+                $plan . ': the launch-era price must not exceed list'
+            );
+        }
     }
 
     public function testTheCohortStopsAdvertisingItselfOnceItIsFull(): void
     {
         $this->fillFoundingSlots(49);
 
-        self::assertTrue($this->plans->catalogue($this->tenantId)[PlanService::PLAN_SOLO]['founding_available']);
+        foreach ([PlanService::PLAN_SOLO, PlanService::PLAN_STUDIO] as $plan) {
+            self::assertTrue($this->plans->catalogue($this->tenantId)[$plan]['founding_available']);
+        }
+
+        // Free has no founding price, so it never advertises one.
+        self::assertFalse($this->plans->catalogue($this->tenantId)[PlanService::PLAN_FREE]['founding_available']);
 
         $this->fillFoundingSlots(1);
 
-        self::assertFalse($this->plans->catalogue($this->tenantId)[PlanService::PLAN_SOLO]['founding_available']);
+        foreach ([PlanService::PLAN_SOLO, PlanService::PLAN_STUDIO] as $plan) {
+            self::assertFalse($this->plans->catalogue($this->tenantId)[$plan]['founding_available']);
+        }
     }
 
     public function testSixtyWorkspacesClaimingInTurnProduceExactlyFiftyWinners(): void
@@ -804,8 +890,13 @@ class BillingAndOnboardingFeatureTest extends TestCase
         ];
     }
 
-    private function subscriptionEvent(string $eventId, string $type, string $subscriptionId, string $status): array
-    {
+    private function subscriptionEvent(
+        string $eventId,
+        string $type,
+        string $subscriptionId,
+        string $status,
+        string $plan = PlanService::PLAN_SOLO
+    ): array {
         return [
             'id' => $eventId,
             'object' => 'event',
@@ -819,7 +910,7 @@ class BillingAndOnboardingFeatureTest extends TestCase
                     'current_period_end' => $this->now->getTimestamp() + 86400,
                     'cancel_at_period_end' => false,
                     'items' => ['object' => 'list', 'data' => [['price' => ['id' => 'price_founding_locked']]]],
-                    'metadata' => ['tenant_id' => (string) $this->tenantId, 'plan' => PlanService::PLAN_SOLO],
+                    'metadata' => ['tenant_id' => (string) $this->tenantId, 'plan' => $plan],
                 ],
             ],
         ];

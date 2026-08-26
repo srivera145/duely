@@ -199,8 +199,9 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
             </h2>
             <p class="mt-3 leading-relaxed text-text-muted">
                 <?php if ($founding !== null && $founding['remaining'] > 0): ?>
-                The first <?= (int) $founding['total'] ?> accounts pay $19 a month for as long as
-                they stay, whatever we charge later. <?= (int) $founding['remaining'] ?> places left.
+                The first <?= (int) $founding['total'] ?> accounts keep today's price for as long
+                as they stay, on whichever plan they are on, whatever we charge later.
+                <?= (int) $founding['remaining'] ?> places left.
                 <?php else: ?>
                 Join the waitlist and we will email you when your place is ready.
                 <?php endif; ?>

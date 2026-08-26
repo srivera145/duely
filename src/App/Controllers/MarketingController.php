@@ -43,8 +43,9 @@ class MarketingController extends Controller
         'What if I want to send one myself?' =>
             'Send it. Duely notices the reply in the thread and steps out of the way.',
         'What does it cost?' =>
-            'Free for three invoices being chased at once. $19 a month for unlimited, and the '
-            . 'first fifty accounts keep that price for as long as they stay.',
+            'Free for three invoices being chased at once. $19 a month for unlimited, $39 for a '
+            . 'team. The first fifty paying accounts keep today\'s price for as long as they '
+            . 'stay, on whichever plan they are on.',
     ];
 
     /**

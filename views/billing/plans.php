@@ -84,7 +84,8 @@ $blurbs = [
                     <?php elseif (!empty($status['is_founding'])): ?>
                     <p class="mt-1 text-sm text-text-muted">
                         Your price is locked at <?= $e($money((int) $status['price_cents'])) ?> a month for as
-                        long as you stay, whatever we charge later.
+                        long as you stay, whatever we charge later &mdash; and it stays locked if you
+                        move to another plan.
                     </p>
                     <?php endif; ?>
                 </div>
@@ -109,8 +110,9 @@ $blurbs = [
                         <?= (int) $founding['remaining'] ?> of <?= (int) $founding['total'] ?> founding places left
                     </p>
                     <p class="mt-1 max-w-xl text-sm text-text-muted">
-                        The first <?= (int) $founding['total'] ?> paid accounts keep $19 a month permanently.
-                        We will raise the price later; yours will not move.
+                        The first <?= (int) $founding['total'] ?> paid accounts keep today's price
+                        permanently, on whichever plan they are on. We will raise the price later;
+                        yours will not move.
                     </p>
                 </div>
                 <div class="w-40">
