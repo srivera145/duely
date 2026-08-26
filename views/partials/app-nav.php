@@ -68,16 +68,25 @@ $navLinks = [
         <?= $pageSubtitle ?>
     </div>
 
-    <?php if ($showNav): ?>
+    <!--
+        The right-hand side. Sign out is outside the $showNav condition on
+        purpose: the nav links are a per-page decision, but a session the user
+        cannot end is not one they control, so it goes on every page.
+
+        A single-child flex container adds no spacing, so pages that pass a bare
+        <a> as $pageActions look exactly as they did.
+    -->
     <div class="flex flex-wrap items-center gap-3">
+        <?php if ($showNav): ?>
         <?php foreach ($navLinks as $label => $href): ?>
         <a href="<?= $href ?>" class="text-sm text-text-muted hover:text-text-strong"><?= $label ?></a>
         <?php endforeach; ?>
+        <?php endif; ?>
+
         <?= $pageActions ?>
+
+        <?php require __DIR__ . '/sign-out.php'; ?>
     </div>
-    <?php else: ?>
-    <?= $pageActions ?>
-    <?php endif; ?>
 </div>
 <?php
 // Includes share the enclosing scope; a leftover here would bleed into the next

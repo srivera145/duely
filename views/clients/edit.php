@@ -24,7 +24,10 @@ $money = static fn (int $cents, string $currency): string => \Keel\App\Services\
                     <?= $isNew ? 'New client' : $e($client['name']) ?>
                 </h1>
             </div>
-            <a href="/clients" class="text-sm text-text-muted hover:text-text-strong">Back to clients</a>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="/clients" class="text-sm text-text-muted hover:text-text-strong">Back to clients</a>
+                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
+            </div>
         </div>
 
         <form id="client-form" class="space-y-6" novalidate>

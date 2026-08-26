@@ -10,7 +10,10 @@
                 <p class="text-sm text-gray-500">Organization settings</p>
                 <h1 class="text-3xl font-bold text-gray-900"><?= htmlspecialchars((string) ($organization['name'] ?? 'Organization')) ?></h1>
             </div>
-            <a href="/dashboard" class="text-sm text-gray-500 hover:text-gray-900">Back to dashboard</a>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="/dashboard" class="text-sm text-gray-500 hover:text-gray-900">Back to dashboard</a>
+                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
+            </div>
         </div>
 
         <div class="card">

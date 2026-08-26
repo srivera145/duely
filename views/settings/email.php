@@ -56,7 +56,10 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                     sees a normal email from you.
                 </p>
             </div>
-            <a href="/dashboard" class="text-sm text-text-muted hover:text-text-strong">Back to dashboard</a>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="/dashboard" class="text-sm text-text-muted hover:text-text-strong">Back to dashboard</a>
+                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
+            </div>
         </div>
 
         <!-- What to do once the mailbox is connected. -->

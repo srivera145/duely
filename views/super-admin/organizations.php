@@ -14,7 +14,10 @@ $selectedMembers = $selectedMembers ?? [];
                 <p class="text-sm text-gray-500">Platform operator</p>
                 <h1 class="text-3xl font-bold text-gray-900">Organizations</h1>
             </div>
-            <a href="/dashboard" class="text-sm text-gray-500 hover:text-gray-900">Back to dashboard</a>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="/dashboard" class="text-sm text-gray-500 hover:text-gray-900">Back to dashboard</a>
+                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
+            </div>
         </div>
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">

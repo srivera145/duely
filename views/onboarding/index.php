@@ -20,6 +20,15 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-3xl px-4 py-10" id="onboarding">
 
+        <!--
+            Signed in on a centred page with no header. Sign out still has to be
+            reachable: this is where a user lands when they finish setup, and it
+            is the one page they may open on a shared machine.
+        -->
+        <div class="mb-4 flex justify-end">
+            <?php require __DIR__ . '/../partials/sign-out.php'; ?>
+        </div>
+
         <div class="mb-8 text-center">
             <div class="mb-6 flex justify-center">
                 <?php

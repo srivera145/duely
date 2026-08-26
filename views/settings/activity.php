@@ -15,7 +15,10 @@ $totalPages = $totalPages ?? 1;
                 <p class="text-sm text-gray-500">Organization activity</p>
                 <h1 class="text-3xl font-bold text-gray-900">Activity Log</h1>
             </div>
-            <a href="/settings/organization" class="text-sm text-gray-500 hover:text-gray-900">Organization settings</a>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="/settings/organization" class="text-sm text-gray-500 hover:text-gray-900">Organization settings</a>
+                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
+            </div>
         </div>
 
         <div class="card overflow-x-auto p-0">

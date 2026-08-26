@@ -49,7 +49,10 @@ $blurbs = [
                 <p class="text-sm text-text-muted">Billing</p>
                 <h1 class="text-3xl font-bold text-text-strong">Plans</h1>
             </div>
-            <a href="/dashboard" class="text-sm text-text-muted hover:underline">Back to the dashboard</a>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="/dashboard" class="text-sm text-text-muted hover:underline">Back to the dashboard</a>
+                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
+            </div>
         </div>
 
         <?php if ($error !== null): ?>

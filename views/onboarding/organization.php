@@ -5,6 +5,10 @@
 </head>
 <body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
     <div class="card w-full max-w-md p-8">
+        <div class="mb-3 flex justify-end">
+            <?php require __DIR__ . '/../partials/sign-out.php'; ?>
+        </div>
+
         <p class="text-sm text-gray-500">Organization setup</p>
         <h1 class="mt-2 text-2xl font-bold text-gray-900">What is your organization called?</h1>
         <p class="mt-3 text-sm leading-6 text-gray-600">Create the team space above your account. You will be the owner.</p>

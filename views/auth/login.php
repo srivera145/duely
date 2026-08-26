@@ -59,6 +59,12 @@ $csrfToken = \Keel\Core\Csrf::token();
                 <h1 class="text-3xl font-semibold tracking-tight text-text-strong">Sign in</h1>
                 <p class="mt-1 text-sm text-text-muted">No password needed.</p>
 
+                <?php if (!empty($_GET['notice']) && $_GET['notice'] === 'signed_out'): ?>
+                <div class="mt-5 rounded-lg border border-success-border bg-success-soft px-3 py-2 text-sm text-success-text">
+                    You are signed out.
+                </div>
+                <?php endif; ?>
+
                 <?php if (!empty($_GET['error']) && $_GET['error'] === 'invalid_invite'): ?>
                 <div class="mt-5 rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-sm text-danger-text">
                     That invite link is invalid, expired, or already used.

@@ -5,6 +5,7 @@ namespace Keel\App\Controllers;
 use Keel\App\Services\MagicLinkService;
 use Keel\App\Services\OtpService;
 use Keel\Core\Activity;
+use Keel\Core\Auth;
 use Keel\Core\Controller;
 use Keel\Core\Env;
 use Keel\Core\Request;
@@ -79,9 +80,20 @@ class AuthController extends Controller
 
     public function logout(Request $request): void
     {
+        // Logged before the session goes, or there is no user left to log it
+        // against.
         Activity::log('user.logout');
         Session::destroy();
-        $this->redirect('/login');
+
+        // Auth caches the resolved id for the life of the process. Clearing it
+        // matters wherever a request is not a fresh process -- the test harness,
+        // and any long-lived worker that ever renders a page.
+        Auth::setUserId(null);
+
+        // Say it worked. Without the notice, signing out is indistinguishable
+        // from the session having expired on its own, or from the click not
+        // having registered at all.
+        $this->redirect('/login?notice=signed_out');
     }
 
     private function loginUser(array $user): void
