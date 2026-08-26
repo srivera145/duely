@@ -37,7 +37,20 @@ $sections = [
         . 'ownership of anything you put into Duely, and we do not sell or share it. We use it to '
         . 'run the service you asked for, and for nothing else.',
     ],
-    'Payment' => [
+    'Payments you collect from your clients' => [
+        'Duely can optionally put a payment link in your reminders, through Stripe. This is off '
+        . 'unless you connect a Stripe account, and it is separate from your Duely subscription.',
+        'When you use it, you are the merchant of record. The money moves directly from your '
+        . 'client into your own Stripe account and never enters an account Duely controls. Your '
+        . 'relationship with Stripe is governed by Stripe\'s own terms, which you agree to '
+        . 'directly with them.',
+        'Chargebacks, refunds, disputes and payouts are between you, your client, and Stripe. '
+        . 'Duely is not a party to them and cannot resolve them on your behalf. We can tell you '
+        . 'what Stripe told us; that is all.',
+        'Duely charges nothing on top of what you collect. Stripe charges its own processing fee, '
+        . 'which depends on your account and your country and is a matter between you and Stripe.',
+    ],
+    'Paying for Duely' => [
         'Paid plans are billed monthly in advance through Stripe. You can cancel at any time and '
         . 'keep access until the end of the period you have paid for; we do not refund part '
         . 'months, and we do not bill you again after you cancel.',

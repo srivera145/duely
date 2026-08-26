@@ -147,8 +147,11 @@ $plans = [
                         . 'it ends you drop to Free rather than being charged.',
                     'Can I cancel?' => 'Whenever you like, from Stripe. Your invoices, clients and '
                         . 'history stay where they are.',
-                    'Do you take a cut of what I invoice?' => 'No. Duely never touches the money. It '
-                        . 'sends emails; your client pays you the way they always have.',
+                    'Do you take a cut of what I invoice?' => 'No, and there is no fee on top of the '
+                        . 'subscription. If you never connect Stripe, Duely only sends emails and your '
+                        . 'client pays you the way they always have. If you do connect it, the money '
+                        . 'goes straight into your own Stripe account and Duely adds nothing to it &mdash; '
+                        . 'Stripe\'s own processing fee is between you and them.',
                 ];
                 foreach ($notes as $question => $answer):
                 ?>

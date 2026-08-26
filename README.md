@@ -26,6 +26,8 @@ You add an invoice and a due date. Duely watches the clock.
 
 Every message is sent through **your** mail server, from **your** address, threaded into a single conversation so it reads like you wrote it. Duely watches your inbox for a reply and stops the sequence the moment your client responds — or the moment you mark the invoice paid.
 
+Optionally, connect Stripe and each reminder carries a payment link. The money goes straight into **your** Stripe account — you are the merchant of record, funds never enter a Duely-controlled balance, and Duely adds no fee of its own. What it gets back is a webhook saying the invoice was paid, which is what lets it stop the reminders on its own. Never connect Stripe and none of that applies: Duely only sends email.
+
 No accounting suite. No client portal. No "sent via" footer.
 
 ---

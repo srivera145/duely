@@ -38,6 +38,7 @@ $navLinks = [
     'Clients' => '/clients',
     'Sequences' => '/sequences',
     'Email' => '/settings/email',
+    'Payments' => '/settings/payments',
 ];
 ?>
 <div class="mb-8 flex flex-wrap items-start justify-between gap-4">

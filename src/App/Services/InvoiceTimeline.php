@@ -6,6 +6,7 @@ use DateTimeImmutable;
 use Keel\App\Models\Chase;
 use Keel\App\Models\ChaseMessage;
 use Keel\App\Models\Invoice;
+use Keel\App\Models\InvoicePayment;
 use Keel\App\Models\ReplyEvent;
 use Keel\App\Models\SequenceStep;
 
@@ -42,13 +43,14 @@ class InvoiceTimeline
         $steps = $chase === null ? [] : SequenceStep::forSequence($tenantId, (int) $chase['sequence_id']);
         $messages = $chase === null ? [] : ChaseMessage::forChase($tenantId, (int) $chase['id']);
         $replies = $chase === null ? [] : ReplyEvent::forChase($tenantId, (int) $chase['id']);
+        $payments = InvoicePayment::forInvoice($tenantId, $invoiceId);
 
         return [
             'invoice' => $invoice,
             'chase' => $chase,
             'sequence_steps' => $steps,
             'rail' => $this->rail($invoice, $steps, $messages, $now),
-            'events' => $this->events($invoice, $chase, $messages, $replies),
+            'events' => $this->events($invoice, $chase, $messages, $replies, $payments),
             'next_send_at' => $chase['next_send_at'] ?? null,
         ];
     }
@@ -107,8 +109,13 @@ class InvoiceTimeline
      *
      * @return array<int, array<string, mixed>>
      */
-    private function events(array $invoice, ?array $chase, array $messages, array $replies): array
-    {
+    private function events(
+        array $invoice,
+        ?array $chase,
+        array $messages,
+        array $replies,
+        array $payments = []
+    ): array {
         $events = [];
 
         $events[] = [
@@ -158,6 +165,27 @@ class InvoiceTimeline
             ];
         }
 
+        foreach ($payments as $payment) {
+            $events[] = [
+                'type' => 'payment',
+                'at' => (string) $payment['created_at'],
+                'title' => $this->paymentTitle((string) $payment['outcome']),
+                'detail' => MoneyParser::format(
+                    (int) $payment['amount_cents'],
+                    (string) $payment['currency']
+                ) . ' received through Stripe',
+                'outcome' => (string) $payment['outcome'],
+                // What is still owed, so a part payment reads as a number and
+                // not as a puzzle the user has to do arithmetic on.
+                'outstanding' => (string) $payment['outcome'] === InvoicePayment::OUTCOME_PARTIAL
+                    ? MoneyParser::format(
+                        (int) $invoice['amount_cents'] - (int) $payment['amount_cents'],
+                        (string) $invoice['currency']
+                    )
+                    : null,
+            ];
+        }
+
         if ($invoice['status'] === Invoice::STATUS_PAID && !empty($invoice['paid_at'])) {
             $events[] = [
                 'type' => 'paid',
@@ -191,6 +219,15 @@ class InvoiceTimeline
         });
 
         return $events;
+    }
+
+    private function paymentTitle(string $outcome): string
+    {
+        return match ($outcome) {
+            InvoicePayment::OUTCOME_PARTIAL => 'Part payment received',
+            InvoicePayment::OUTCOME_OVERPAID => 'Overpayment received',
+            default => 'Payment received',
+        };
     }
 
     private function messageTitle(array $message): string

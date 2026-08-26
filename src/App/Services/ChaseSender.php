@@ -55,6 +55,7 @@ class ChaseSender
         private readonly TemplateRenderer $renderer = new TemplateRenderer(),
         private readonly ChaseScheduler $scheduler = new ChaseScheduler(),
         private readonly SendRateLimiter $limiter = new SendRateLimiter(),
+        private readonly PaymentLinkService $paymentLinks = new PaymentLinkService(),
     ) {
     }
 
@@ -118,6 +119,12 @@ class ChaseSender
     {
         $now ??= Clock::now();
 
+        // Payment links are made here, outside the claim's transaction, so a
+        // slow Stripe call never holds a row lock across the network. For a
+        // workspace with no Stripe account this is one indexed query that
+        // returns nothing — the unconnected path stays exactly as it was.
+        $this->ensurePaymentLinks($tenantId, $now);
+
         $claim = $this->claim($tenantId, $now, $ignoreWindow);
 
         if ($claim === null) {
@@ -134,6 +141,53 @@ class ChaseSender
         }
 
         return $this->dispatch($tenantId, $claim, $now);
+    }
+
+    /**
+     * Make a payment link for each due invoice that could use one.
+     *
+     * Lazy by design: a link is created on the first reminder that would carry
+     * it, never at invoice creation. Most invoices are paid without a reminder
+     * ever going out, and generating up front would leave the user's Stripe
+     * account full of links for money that already arrived.
+     *
+     * The WHERE clause does the gating, so nothing happens at all unless the
+     * workspace is connected, Stripe is letting it take payments, and the
+     * invoice has no link of its own.
+     */
+    private function ensurePaymentLinks(int $tenantId, DateTimeImmutable $now, int $limit = 50): void
+    {
+        $statement = Database::connection()->prepare(
+            'SELECT i.*
+             FROM chases c
+             INNER JOIN invoices i ON i.id = c.invoice_id AND i.tenant_id = c.tenant_id
+             INNER JOIN organizations o ON o.id = c.tenant_id
+             WHERE c.tenant_id = ?
+               AND c.status IN (?, ?)
+               AND c.next_send_at IS NOT NULL
+               AND c.next_send_at <= ?
+               AND i.status = ?
+               AND (i.payment_url IS NULL OR i.payment_url = "")
+               AND o.stripe_account_id IS NOT NULL
+               AND o.stripe_charges_enabled = 1
+             ORDER BY c.next_send_at ASC
+             LIMIT ' . max(1, $limit)
+        );
+
+        $statement->execute([
+            $tenantId,
+            Chase::STATUS_SCHEDULED,
+            Chase::STATUS_ACTIVE,
+            Clock::toDatabase($now),
+            Invoice::STATUS_OPEN,
+        ]);
+
+        foreach ($statement->fetchAll() ?: [] as $invoice) {
+            // A failure here is not a reason to skip the reminder. The message
+            // goes out without a pay button, which is what every reminder did
+            // before this feature existed.
+            $this->paymentLinks->generate($tenantId, $invoice);
+        }
     }
 
     // ------------------------------------------------------------- claiming

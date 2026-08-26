@@ -235,6 +235,16 @@ class AiService
 
         if ($rawResponse === false || $curlError !== '') {
             $this->logFailure('Anthropic request failed', ['status' => $status, 'curl_error' => $curlError]);
+            // A missing CA bundle is the likeliest cause on a fresh Windows
+            // install, and "failed or timed out" sends whoever hits it looking
+            // in entirely the wrong place. Name it.
+            if (stripos($curlError, 'certificate') !== false || stripos($curlError, 'trust anchor') !== false) {
+                throw new \RuntimeException(
+                    'Could not verify the TLS certificate for api.anthropic.com. PHP has no CA '
+                    . 'bundle configured: set curl.cainfo in php.ini. curl said: ' . $curlError
+                );
+            }
+
             throw new \RuntimeException('Anthropic request failed or timed out.');
         }
 

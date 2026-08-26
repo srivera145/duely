@@ -173,56 +173,28 @@ class ChaseController extends Controller
             $this->json(['error' => 'That invoice is already marked paid.'], 409);
         }
 
-        $chase = Chase::forInvoice($tenantId, $invoiceId);
-
-        // Snapshot before changing anything, so undo restores the exact prior
-        // state rather than guessing at it later.
-        $snapshot = [
-            'invoice' => [
-                'status' => $invoice['status'],
-                'paid_at' => $invoice['paid_at'],
-                'paid_source' => $invoice['paid_source'] ?? null,
-            ],
-            'chase' => $chase === null ? null : [
-                'id' => (int) $chase['id'],
-                'status' => $chase['status'],
-                'paused_reason' => $chase['paused_reason'],
-                'paused_at' => $chase['paused_at'],
-                'next_send_at' => $chase['next_send_at'],
-                'current_position' => (int) $chase['current_position'],
-            ],
-        ];
-
-        Invoice::update($tenantId, $invoiceId, [
-            'status' => Invoice::STATUS_PAID,
-            'paid_at' => Clock::toDatabase(Clock::now()),
-            'paid_source' => 'manual',
-        ]);
-
+        // One shared path with the Stripe webhook -- see InvoicePaymentMarker.
         // Stopping the chase is the point of the button: nothing further goes
         // out to someone who has paid.
-        if ($chase !== null && in_array($chase['status'], [Chase::STATUS_SCHEDULED, Chase::STATUS_ACTIVE], true)) {
-            Chase::pause($tenantId, (int) $chase['id'], Chase::PAUSE_INVOICE_PAID);
-        }
+        $result = (new \Keel\App\Services\InvoicePaymentMarker())->markPaid(
+            $tenantId,
+            $invoice,
+            \Keel\App\Services\InvoicePaymentMarker::SOURCE_MANUAL
+        );
 
         $undo = $this->undo->remember(
             $tenantId,
             UndoService::ACTION_MARK_PAID,
             'Invoice',
             $invoiceId,
-            $snapshot
+            $result['snapshot']
         );
-
-        Activity::log('invoice.marked_paid', 'Invoice', $invoiceId, [
-            'source' => 'manual',
-            'chase_paused' => $chase !== null,
-        ]);
 
         $this->json([
             'paid' => true,
             'undo_token' => $undo['token'],
             'undo_expires_in' => $undo['expires_in'],
-            'chase' => $chase === null ? null : $this->present($tenantId, (int) $chase['id']),
+            'chase' => $result['chase'] === null ? null : $this->present($tenantId, (int) $result['chase']['id']),
         ]);
     }
 

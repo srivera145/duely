@@ -5,6 +5,7 @@ namespace Keel\App\Controllers;
 use Keel\App\Models\Chase;
 use Keel\App\Models\Client;
 use Keel\App\Models\Invoice;
+use Keel\App\Services\ConnectService;
 use Keel\App\Services\DateParser;
 use Keel\App\Services\MoneyParser;
 use Keel\App\Services\TenantContext;
@@ -98,6 +99,7 @@ class InvoiceController extends Controller
             // It is only ever a suggestion in the form -- the save path is the
             // same one a hand-typed invoice takes, with the same validation.
             'draft' => $this->draftFromQuery($request),
+            'canTakePayments' => (new ConnectService())->status($tenantId)['can_take_payments'],
         ]);
     }
 
@@ -118,6 +120,7 @@ class InvoiceController extends Controller
             'invoice' => $invoice,
             'clients' => Client::active($tenantId, 500),
             'chase' => Chase::forInvoice($tenantId, (int) $invoice['id']),
+            'canTakePayments' => (new ConnectService())->status($tenantId)['can_take_payments'],
         ]);
     }
 

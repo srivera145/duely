@@ -183,9 +183,34 @@ $updatedLabel = date('j F Y', strtotime($updatedOn));
                 screen or endpoint that returns another workspace's data.
             </p>
             <p class="mt-4 leading-relaxed text-text-muted">
-                Duely never touches money. Payments happen the way they always have, directly
-                between you and your client. Marking an invoice paid tells Duely to stop; it does
-                not tell us anything about how you were paid.
+                If you have not connected Stripe, Duely never touches money. Payments happen the way
+                they always have, directly between you and your client. Marking an invoice paid tells
+                Duely to stop; it does not tell us anything about how you were paid.
+            </p>
+        </article>
+
+        <article id="payments">
+            <h2 class="text-2xl font-semibold tracking-tight text-text-strong">If you connect Stripe</h2>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                Connecting Stripe is optional, off unless you turn it on, and changes exactly one
+                thing: Duely can put a payment link in your reminders so a client can pay from the
+                email.
+            </p>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                The money goes <strong class="text-text-strong">directly from your client into your
+                own Stripe account</strong>. It never passes through an account Duely controls, and
+                Duely is not the merchant of record &mdash; you are. Your payouts, your disputes,
+                your refunds, your agreement with Stripe.
+            </p>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                What Duely does receive is a message from Stripe saying a payment succeeded, which
+                invoice it was for, and how much. That is what lets it mark the invoice paid and stop
+                the reminders without you having to. It is the whole of Duely's involvement with the
+                money, and it is the reason we do not claim never to see it.
+            </p>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                Disconnecting revokes Duely's access at Stripe rather than just forgetting it here,
+                so there is no authorisation left behind that you cannot see.
             </p>
         </article>
 

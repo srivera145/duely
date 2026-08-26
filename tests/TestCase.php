@@ -395,6 +395,8 @@ abstract class TestCase extends PhpUnitTestCase
             // Duely domain tables.
             'waitlist_signups',
             'stripe_events',
+            'connect_events',
+            'invoice_payments',
             'onboarding_progress',
             'ai_usage',
             'undo_actions',

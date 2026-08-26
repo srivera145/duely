@@ -25,6 +25,9 @@ $eventStyles = [
     'reply' => ['dot' => 'bg-success', 'icon' => '↓'],
     'paused' => ['dot' => 'bg-tone-firm', 'icon' => '‖'],
     'paid' => ['dot' => 'bg-success', 'icon' => '✓'],
+    // Money arriving is not the same as an invoice being settled, so a part
+    // payment gets the attention colour rather than the success one.
+    'payment' => ['dot' => 'bg-success', 'icon' => '$'],
     'void' => ['dot' => 'bg-text-muted', 'icon' => '×'],
 ];
 ?>
@@ -157,7 +160,13 @@ $eventStyles = [
 
             <ol class="relative space-y-1 border-l border-card-border pl-6">
                 <?php foreach ($events as $index => $event): ?>
-                <?php $style = $eventStyles[$event['type']] ?? $eventStyles['created']; ?>
+                <?php
+                $style = $eventStyles[$event['type']] ?? $eventStyles['created'];
+
+                if ($event['type'] === 'payment' && ($event['outcome'] ?? '') === 'partial') {
+                    $style = ['dot' => 'bg-tone-firm', 'icon' => '!'];
+                }
+                ?>
                 <li class="relative pb-6">
                     <span class="absolute -left-[31px] flex h-5 w-5 items-center justify-center rounded-full <?= $style['dot'] ?> text-[10px] font-bold text-surface">
                         <?= $e($style['icon']) ?>
@@ -192,6 +201,19 @@ $eventStyles = [
                             </div>
                         </details>
                         <?php endif; ?>
+                    <?php endif; ?>
+
+                    <?php if ($event['type'] === 'payment' && ($event['outcome'] ?? '') === 'partial'): ?>
+                    <div class="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
+                        <p class="font-semibold text-amber-400">
+                            <?= $e($event['outstanding']) ?> is still outstanding
+                        </p>
+                        <p class="mt-1 text-text-muted">
+                            The invoice is still open and the reminders have not stopped, because Duely cannot
+                            tell whether the rest is coming. The next reminder asks for the full amount. Mark
+                            the invoice paid or pause the chase if that is not what you want.
+                        </p>
+                    </div>
                     <?php endif; ?>
 
                     <?php if ($event['type'] === 'reply' && !empty($event['snippet'])): ?>

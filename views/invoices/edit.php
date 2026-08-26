@@ -154,7 +154,14 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
                                value="<?= $isNew ? '' : $e($invoice['payment_url']) ?>"
                                placeholder="https://…" class="form-input mt-1 w-full">
                         <p class="mt-1 text-xs text-text-muted" data-error-for="payment_url">
+                            <?php if (!$isNew && !empty($invoice['payment_url_is_generated'])): ?>
+                            Duely made this one through Stripe. Type your own here and Duely will use yours instead.
+                            <?php elseif ($canTakePayments ?? false): ?>
+                            Included in reminders when set. Leave it empty and Duely adds a Stripe pay button
+                            when the first reminder goes out.
+                            <?php else: ?>
                             Included in reminders when set.
+                            <?php endif; ?>
                         </p>
                     </div>
                     <div class="sm:col-span-2">

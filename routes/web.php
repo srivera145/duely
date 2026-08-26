@@ -7,6 +7,8 @@ use Keel\App\Controllers\ApiTokenController;
 use Keel\App\Controllers\BillingController;
 use Keel\App\Controllers\ChaseController;
 use Keel\App\Controllers\ClientController;
+use Keel\App\Controllers\ConnectController;
+use Keel\App\Controllers\ConnectWebhookController;
 use Keel\App\Controllers\DashboardController;
 use Keel\App\Controllers\DocsController;
 use Keel\App\Controllers\FileController;
@@ -196,6 +198,16 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->post('/api/email-account/save', [SettingsController::class, 'save']);
             $router->post('/api/email-account/send-test', [SettingsController::class, 'sendTest']);
             $router->post('/api/email-account/delete', [SettingsController::class, 'delete']);
+
+            // Duely: collecting payment through the user's own Stripe account.
+            // Off by default; a workspace that never opens this page is
+            // untouched by all of it.
+            $router->get('/settings/payments', [ConnectController::class, 'show']);
+            $router->get('/settings/payments/callback', [ConnectController::class, 'callback']);
+            $router->post('/settings/payments/connect', [ConnectController::class, 'connect']);
+            $router->post('/settings/payments/refresh', [ConnectController::class, 'refresh']);
+            $router->post('/settings/payments/disconnect', [ConnectController::class, 'disconnect']);
+            $router->post('/api/invoices/{id}/payment-link', [ConnectController::class, 'createLink']);
         });
     });
 });
@@ -205,3 +217,9 @@ $router->group(['prefix' => '/api/v1', 'middleware' => [ThrottleMiddleware::clas
 });
 
 $router->post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
+
+// Connect payments. A separate endpoint from the subscription webhook above,
+// with a separate signing secret, so an event captured from one cannot be
+// replayed against the other. Outside every middleware group: Stripe carries no
+// session and no CSRF token, and its signature is the authentication.
+$router->post('/webhooks/stripe-connect', [ConnectWebhookController::class, 'handle']);
