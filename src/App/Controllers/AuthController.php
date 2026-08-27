@@ -2,6 +2,7 @@
 
 namespace Keel\App\Controllers;
 
+use Keel\App\Services\Clock;
 use Keel\App\Services\MagicLinkService;
 use Keel\App\Services\OtpService;
 use Keel\Core\Activity;
@@ -99,6 +100,9 @@ class AuthController extends Controller
     private function loginUser(array $user): void
     {
         Session::regenerate();
+        // Stamped so a forced session reset can invalidate everything issued
+        // before it. Without this the reset has nothing to compare against.
+        Session::put('issued_at', Clock::toDatabase(Clock::now()));
         Session::put('user_id', $user['id']);
         Session::put('user_email', $user['email']);
         Session::put('organization_id', $user['organization_id'] ?? null);

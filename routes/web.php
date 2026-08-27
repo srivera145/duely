@@ -10,6 +10,11 @@ use Keel\App\Controllers\ClientController;
 use Keel\App\Controllers\ConnectController;
 use Keel\App\Controllers\ConnectWebhookController;
 use Keel\App\Controllers\DashboardController;
+use Keel\App\Controllers\SuperAdmin\AccountsController;
+use Keel\App\Controllers\SuperAdmin\DashboardController as SuperAdminDashboardController;
+use Keel\App\Controllers\SuperAdmin\ImpersonationController;
+use Keel\App\Controllers\SuperAdmin\OperationsController;
+use Keel\App\Controllers\SuperAdmin\SupportController;
 use Keel\App\Controllers\DocsController;
 use Keel\App\Controllers\FileController;
 use Keel\App\Controllers\HealthController;
@@ -26,13 +31,13 @@ use Keel\App\Controllers\SequenceController;
 use Keel\App\Controllers\SettingsController;
 use Keel\App\Controllers\ToneAssistController;
 use Keel\App\Controllers\SitemapController;
-use Keel\App\Controllers\SuperAdminController;
 use Keel\App\Controllers\ThemeController;
 use Keel\App\Controllers\StripeWebhookController;
 use Keel\App\Controllers\WaitlistController;
 use Keel\App\Controllers\WelcomeController;
 use Keel\App\Middleware\AuthMiddleware;
 use Keel\App\Middleware\ApiAuthMiddleware;
+use Keel\App\Middleware\ImpersonationGuardMiddleware;
 use Keel\App\Middleware\CsrfMiddleware;
 use Keel\App\Middleware\RequireOrgAdminMiddleware;
 use Keel\App\Middleware\RequireOrganizationMiddleware;
@@ -82,12 +87,69 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
 
     $router->post('/logout', [AuthController::class, 'logout']);
 
+// The way out of an impersonated session. Deliberately not under
+// /super-admin, which such a session is blocked from reaching -- the exit
+// cannot be behind the door it is escaping.
+$router->post('/impersonation/stop', [ImpersonationController::class, 'stop']);
+
     if ($multiTenancyEnabled) {
         $router->get('/invite/accept', [OrganizationController::class, 'acceptInvite']);
     }
 
-    $router->group(['middleware' => [AuthMiddleware::class]], function ($router) use ($multiTenancyEnabled) {
+    // ImpersonationGuardMiddleware sits beside AuthMiddleware rather than
+    // inside the panel: the actions it blocks live all over the product, and a
+    // guard that only runs on pages somebody remembered to guard is not a guard.
+    $router->group(
+        ['middleware' => [AuthMiddleware::class, ImpersonationGuardMiddleware::class]],
+        function ($router) use ($multiTenancyEnabled) {
+        // The operator panel. Outside `if ($multiTenancyEnabled)` deliberately:
+        // being the platform operator has nothing to do with whether this
+        // install uses organizations, and nesting it there made the panel
+        // unreachable on every single-tenant deployment -- which is all of them.
+        $router->group(['middleware' => [RequireSuperAdminMiddleware::class]], function ($router) {
+            // The operator panel. Throttled as a whole, and the middleware
+            // 404s rather than 403s so the paths are not confirmed to
+            // anybody who should not have them.
+            $router->group(['middleware' => [ThrottleMiddleware::class]], function ($router) {
+                // Tier 1 -- is anything broken. The landing page.
+                $router->get('/super-admin', [OperationsController::class, 'index']);
+
+                // Tier 2 -- how the business is doing.
+                $router->get('/super-admin/metrics', [SuperAdminDashboardController::class, 'metrics']);
+
+                // Tier 3 -- administering an account.
+                $router->get('/super-admin/organizations', [AccountsController::class, 'index']);
+                $router->get('/super-admin/organizations/{id}', [AccountsController::class, 'show']);
+                $router->post('/super-admin/organizations/{id}/trial', [AccountsController::class, 'extendTrial']);
+                $router->post('/super-admin/organizations/{id}/founding', [AccountsController::class, 'foundingSlot']);
+                $router->post('/super-admin/organizations/{id}/plan', [AccountsController::class, 'changePlan']);
+                $router->post('/super-admin/organizations/{id}/disable', [AccountsController::class, 'disable']);
+                $router->post('/super-admin/organizations/{id}/enable', [AccountsController::class, 'enable']);
+                $router->post('/super-admin/organizations/{id}/pause-chases', [AccountsController::class, 'pauseChases']);
+                $router->post('/super-admin/organizations/{id}/reset-sessions', [AccountsController::class, 'resetSessions']);
+                $router->post('/super-admin/organizations/{id}/resend-invite', [AccountsController::class, 'resendInvite']);
+
+                // Tier 4 -- support access, and the trail it leaves.
+                $router->get('/super-admin/support', [SupportController::class, 'index']);
+                $router->post('/super-admin/support/open', [SupportController::class, 'open']);
+                $router->get('/super-admin/support/{id}', [SupportController::class, 'show']);
+                $router->get('/super-admin/audit', [SupportController::class, 'audit']);
+
+                $router->get('/super-admin/impersonate/{userId}', [ImpersonationController::class, 'confirm']);
+                $router->post('/super-admin/impersonate/{userId}/code', [ImpersonationController::class, 'sendCode']);
+                $router->post('/super-admin/impersonate/{userId}', [ImpersonationController::class, 'start']);
+
+                $router->get('/super-admin/activity', [ActivityController::class, 'platformIndex']);
+            });
+        });
+
         $router->post('/settings/theme', [ThemeController::class, 'update']);
+
+        // The account's own activity, including every support access. Routed
+        // unconditionally: the privacy page promises the owner can read this
+        // without asking, and TenantContext scopes it to their workspace on
+        // single-tenant installs exactly as it does on multi-tenant ones.
+        $router->get('/settings/activity', [ActivityController::class, 'orgIndex']);
 
         $router->get('/settings/api-tokens', [ApiTokenController::class, 'index']);
         $router->post('/settings/api-tokens', [ApiTokenController::class, 'store']);
@@ -100,14 +162,7 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->group(['middleware' => [RequireOrgAdminMiddleware::class]], function ($router) {
                 $router->get('/settings/organization', [OrganizationController::class, 'showSettings']);
                 $router->get('/settings/members', [OrganizationController::class, 'showMembers']);
-                $router->get('/settings/activity', [ActivityController::class, 'orgIndex']);
                 $router->post('/settings/members/invite', [OrganizationController::class, 'sendInvite']);
-            });
-
-            $router->group(['middleware' => [RequireSuperAdminMiddleware::class]], function ($router) {
-                $router->get('/super-admin/organizations', [SuperAdminController::class, 'index']);
-                $router->get('/super-admin/organizations/{id}', [SuperAdminController::class, 'showOrganization']);
-                $router->get('/super-admin/activity', [ActivityController::class, 'platformIndex']);
             });
         }
 

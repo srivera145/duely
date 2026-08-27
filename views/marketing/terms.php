@@ -37,6 +37,21 @@ $sections = [
         . 'ownership of anything you put into Duely, and we do not sell or share it. We use it to '
         . 'run the service you asked for, and for nothing else.',
     ],
+    'Support access to your account' => [
+        "To resolve a support issue you have raised, Duely's operator may open your account data "
+        . 'and, where reproducing the problem requires it, sign in as a user of your workspace. '
+        . 'Access is used for that purpose and no other.',
+        'Every such access requires a stated reason, is recorded with the time and that reason, and '
+        . 'appears in your own activity log where you can read it without asking us. Those records '
+        . 'cannot be edited or deleted by anyone, including the person they describe.',
+        'A session opened this way cannot send email, start or advance reminders, change your plan '
+        . 'or billing, connect or disconnect Stripe, alter your mailbox settings, delete anything, '
+        . 'or invite users. It expires after thirty minutes and cannot be extended.',
+        'Stored mailbox credentials are never displayed or decrypted for support purposes, under '
+        . 'any circumstance. The privacy page sets out the whole of this in more detail, and those '
+        . 'limits are part of these terms.',
+    ],
+
     'Payments you collect from your clients' => [
         'Duely can optionally put a payment link in your reminders, through Stripe. This is off '
         . 'unless you connect a Stripe account, and it is separate from your Duely subscription.',

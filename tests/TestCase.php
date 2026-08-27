@@ -396,6 +396,8 @@ abstract class TestCase extends PhpUnitTestCase
             'waitlist_signups',
             'stripe_events',
             'connect_events',
+            'impersonation_sessions',
+            'support_access_log',
             'invoice_payments',
             'onboarding_progress',
             'ai_usage',

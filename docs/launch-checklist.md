@@ -84,6 +84,47 @@ about Duely changes.
 
 ---
 
+## Blocking — support access
+
+### Ship the privacy page before or with the super-admin panel, never after
+
+**Status:** privacy and terms updated; verify they are deployed alongside the panel
+**Owner:** Santos
+**Blocks:** deploying the super-admin panel
+
+The privacy page used to say there was no screen or endpoint that returns
+another workspace's data. The support panel makes that false the moment it
+deploys. The page and the terms have been corrected — a "When we look at your
+account" section on the privacy page, and a "Support access to your account"
+clause in the terms — but the correction only counts if it is live no later than
+the panel.
+
+Deploying the panel first means the product's own privacy statement is untrue for
+however long the gap lasts. There is no version of that which is acceptable, and
+it is not a thing to fix afterwards: a user who read the old page made a decision
+based on it.
+
+If the two ever have to go separately, ship the page first. A page describing
+access that does not exist yet is merely early. A panel with no page describing it
+is a false statement about how somebody's data is handled.
+
+### Keep the page true as the panel changes
+
+Anything added to the panel that widens what the operator can see or do needs the
+privacy page checked in the same change. The specific promises now on the page:
+
+- Every access is recorded with who, when, and a stated reason.
+- The record appears in the customer's own activity log, and nobody can delete it.
+- Mailbox credentials are never displayed or decrypted for support purposes.
+- An impersonated session cannot send email, start reminders, change billing,
+  touch Stripe, alter mailbox settings, delete anything, or invite users.
+- Impersonation expires at thirty minutes with no extension.
+
+Each of those is enforced in code and covered by a test. If a change makes one of
+them false, the page changes with it or the change does not ship.
+
+---
+
 ## Blocking — general
 
 ### Fill in the remaining Stripe price IDs

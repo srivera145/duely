@@ -179,13 +179,76 @@ $updatedLabel = date('j F Y', strtotime($updatedOn));
             <p class="mt-4 leading-relaxed text-text-muted">
                 Names, email addresses, invoice numbers, amounts and due dates &mdash; whatever you
                 import or type. It is stored so Duely can write the reminders and know when to stop,
-                and it is scoped to your workspace: every query is filtered by it, and there is no
-                screen or endpoint that returns another workspace's data.
+                and it is scoped to your workspace: every query is filtered by it, so nothing you do
+                in Duely can reach another workspace's data, and nothing another customer does can
+                reach yours.
+            </p>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                Separately from that, Duely's operator can open an account's data to resolve a
+                support issue. Both of those are true at once: workspace scoping governs every normal
+                path through the product, and support access is a deliberate exception to it that
+                exists so somebody can actually fix your problem when you write in.
+                <a href="#support-access" class="text-brand hover:underline">What that means in
+                practice</a> is worth reading, so it is set out in full below.
             </p>
             <p class="mt-4 leading-relaxed text-text-muted">
                 If you have not connected Stripe, Duely never touches money. Payments happen the way
                 they always have, directly between you and your client. Marking an invoice paid tells
                 Duely to stop; it does not tell us anything about how you were paid.
+            </p>
+        </article>
+
+        <article id="support-access">
+            <h2 class="text-2xl font-semibold tracking-tight text-text-strong">When we look at your account</h2>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                Duely is run by one person. When you write in about a reminder that did not send, or
+                an invoice that will not mark itself paid, answering you sometimes means looking at
+                the account rather than guessing from a description. So there is a support tool that
+                can open an account's data, and in some cases sign in as a user to see what they are
+                seeing.
+            </p>
+            <p class="mt-4 leading-relaxed text-text-muted">
+                That is real access and we are not going to describe it as something smaller than it
+                is. What makes it acceptable is what surrounds it.
+            </p>
+
+            <h3 class="mt-6 text-lg font-semibold text-text-strong">Every access is recorded</h3>
+            <p class="mt-3 leading-relaxed text-text-muted">
+                Who looked, when, and the reason they gave &mdash; a reason is required before
+                anything opens, and it is stored with the record. That record is written to
+                <strong class="text-text-strong">your</strong> activity log, not only to ours. You
+                can see it from your own account, without asking us and without us choosing to tell
+                you. Nobody can delete those entries, including the person they are about.
+            </p>
+            <p class="mt-3 leading-relaxed text-text-muted">
+                Access is used to resolve a specific issue and nothing else. Not to browse, not to
+                look at how you are doing, not to read your invoices out of curiosity.
+            </p>
+
+            <h3 class="mt-6 text-lg font-semibold text-text-strong">Your mailbox password is never part of it</h3>
+            <p class="mt-3 leading-relaxed text-text-muted">
+                <strong class="text-text-strong">Stored mailbox credentials are never displayed and
+                never decrypted for support purposes, under any circumstance.</strong> There is no
+                screen, no export and no debug view anywhere in the support tool that shows them,
+                masked or partial or otherwise. The only thing that ever decrypts an email password
+                is the code that connects to your mail server to send a reminder or read a reply.
+            </p>
+            <p class="mt-3 leading-relaxed text-text-muted">
+                You handed over an email password. That one stays sealed.
+            </p>
+
+            <h3 class="mt-6 text-lg font-semibold text-text-strong">Signing in as you is look-only</h3>
+            <p class="mt-3 leading-relaxed text-text-muted">
+                When support signs in as a user to reproduce a problem, that session cannot act. It
+                <strong class="text-text-strong">cannot send email</strong> &mdash; no reminder, no
+                test message, nothing that reaches your clients. It cannot start or advance a chase.
+                It cannot change your billing or your plan. It cannot connect or disconnect Stripe.
+                It cannot change your mailbox settings, delete anything, or invite anyone.
+            </p>
+            <p class="mt-3 leading-relaxed text-text-muted">
+                Those limits are enforced by the application, not by hiding buttons. The session also
+                expires after thirty minutes and cannot be extended; carrying on means starting again
+                with a new reason, which gets recorded like the first one.
             </p>
         </article>
 

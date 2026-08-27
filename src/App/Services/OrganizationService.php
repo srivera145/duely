@@ -178,6 +178,44 @@ class OrganizationService
         return $statement->fetchAll();
     }
 
+    /**
+     * Send a pending invite again.
+     *
+     * A fresh invite rather than a re-send of the old email: the token is
+     * hashed, so the original raw value is gone and cannot be re-mailed. The
+     * old row is superseded, which also refreshes an invite that had expired
+     * while somebody was waiting for support to look at it.
+     *
+     * @return array{sent:bool, message:string}
+     */
+    public function resendInvite(int $organizationId, int $inviteId): array
+    {
+        $statement = Database::connection()->prepare(
+            'SELECT * FROM organization_invites
+             WHERE id = ? AND organization_id = ? AND accepted_at IS NULL
+             LIMIT 1'
+        );
+        $statement->execute([$inviteId, $organizationId]);
+        $invite = $statement->fetch();
+
+        if (!$invite) {
+            return ['sent' => false, 'message' => 'No pending invite with that id.'];
+        }
+
+        try {
+            $this->invite(
+                $organizationId,
+                (string) $invite['email'],
+                (string) $invite['role'],
+                (int) $invite['invited_by']
+            );
+        } catch (\Throwable $exception) {
+            return ['sent' => false, 'message' => 'Could not resend: ' . $exception->getMessage()];
+        }
+
+        return ['sent' => true, 'message' => 'Invite resent to ' . $invite['email'] . '.'];
+    }
+
     public function pendingInvites(int $organizationId): array
     {
         $statement = Database::connection()->prepare(

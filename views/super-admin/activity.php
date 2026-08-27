@@ -3,19 +3,11 @@ $logs = $logs ?? [];
 $currentPage = $currentPage ?? 1;
 $totalPages = $totalPages ?? 1;
 ?>
-<!DOCTYPE html>
-<html lang="en"<?= \Keel\Core\Theme::htmlAttribute() ?>>
-<head>
-<?php require __DIR__ . '/../partials/head.php'; ?>
-</head>
-<body class="min-h-screen bg-surface text-text">
-    <div class="mx-auto max-w-7xl px-4 py-10">
-        <?php
-        $pageActions = '<a href="/super-admin/organizations" class="text-sm text-text-muted hover:text-text-strong">Organizations</a>';
-        $pageEyebrow = 'Platform operator';
-        $pageTitle = 'Platform activity';
-        require __DIR__ . '/../partials/app-nav.php';
-        ?>
+<?php
+$panelTitle = 'Platform activity';
+$superAdminNav = $superAdminNav ?? [];
+require __DIR__ . '/_layout.php';
+?>
 
         <div class="card overflow-x-auto p-0">
             <table class="table">
@@ -68,6 +60,4 @@ $totalPages = $totalPages ?? 1;
                 <?php endif; ?>
             </div>
         </div>
-    </div>
-</body>
-</html>
+<?php require __DIR__ . '/_layout-end.php'; ?>

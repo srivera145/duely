@@ -4,6 +4,9 @@ namespace Keel\App\Controllers;
 
 use Keel\App\Models\User;
 use Keel\Core\Auth;
+use Keel\App\Services\SupportAccessLog;
+use Keel\App\Services\TenantContext;
+use Keel\App\Support\SuperAdminNav;
 use Keel\Core\Controller;
 use Keel\Core\Database;
 use Keel\Core\Request;
@@ -12,12 +15,11 @@ class ActivityController extends Controller
 {
     public function orgIndex(Request $request): void
     {
-        $user = $this->currentUser();
-        $organizationId = (int) ($user['organization_id'] ?? 0);
-
-        if ($organizationId <= 0) {
-            $this->redirect('/dashboard');
-        }
+        // Through TenantContext rather than reading the column directly: a
+        // single-tenant user gets their personal workspace provisioned on first
+        // use, and reading organization_id raw would bounce them off their own
+        // activity page before that had happened.
+        $organizationId = TenantContext::requireId();
 
         [$logs, $currentPage, $totalPages] = $this->paginatedLogs(
             'SELECT * FROM activity_log WHERE organization_id = :organization_id ORDER BY created_at DESC, id DESC LIMIT :limit OFFSET :offset',
@@ -43,11 +45,16 @@ class ActivityController extends Controller
             (int) $request->input('page', 1)
         );
 
+        // Logged like every other panel page: read access is the access that
+        // matters in an operator tool.
+        (new SupportAccessLog())->recordView('activity.platform');
+
         $this->view('super-admin.activity', [
             'title' => 'Platform Activity',
             'logs' => $logs,
             'currentPage' => $currentPage,
             'totalPages' => $totalPages,
+            'superAdminNav' => (new SuperAdminNav())->links(),
         ]);
     }
 

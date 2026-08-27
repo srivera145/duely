@@ -241,6 +241,28 @@ class Chase extends BaseModel
      * Pause every live chase pointed at an invoice's client — used when a reply
      * or a payment should quiet the whole relationship, not just one ladder.
      */
+    /**
+     * Pause every live chase in a workspace.
+     *
+     * Used when an account is suspended: a disabled workspace that keeps
+     * emailing its clients is the worst possible version of "disabled".
+     */
+    public static function pauseAllForTenant(int $tenantId, string $reason): int
+    {
+        $sql = 'UPDATE chases
+                SET status = ?, paused_reason = ?, paused_at = ?, next_send_at = NULL
+                WHERE tenant_id = ? AND status IN (?, ?)';
+
+        return static::run($sql, [
+            self::STATUS_PAUSED,
+            $reason,
+            Clock::toDatabase(Clock::now()),
+            $tenantId,
+            self::STATUS_SCHEDULED,
+            self::STATUS_ACTIVE,
+        ])->rowCount();
+    }
+
     public static function pauseAllForClient(int $tenantId, int $clientId, string $reason): int
     {
         $sql = 'UPDATE chases ch
