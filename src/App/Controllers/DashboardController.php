@@ -7,6 +7,7 @@ use Keel\App\Services\Clock;
 use Keel\App\Services\DashboardMetrics;
 use Keel\App\Services\MoneyParser;
 use Keel\App\Services\RelativeTime;
+use Keel\App\Services\Timezones;
 use Keel\App\Services\TenantContext;
 use Keel\Core\Auth;
 use Keel\Core\Controller;
@@ -30,7 +31,9 @@ class DashboardController extends Controller
         $user = User::find((int) Auth::id());
         $now = Clock::now();
 
-        $timezone = $this->userTimezone($user);
+        // The workspace's zone. This used to read users.timezone, a column
+        // that does not exist, so it silently returned UTC for everyone.
+        $timezone = Timezones::forWorkspace($tenantId);
 
         $this->view('dashboard.index', [
             'title' => 'Dashboard - Duely',
@@ -57,7 +60,7 @@ class DashboardController extends Controller
     {
         $tenantId = TenantContext::requireId();
         $now = Clock::now();
-        $timezone = $this->userTimezone(User::find((int) Auth::id()));
+        $timezone = Timezones::forWorkspace($tenantId);
 
         $this->json([
             'cards' => $this->metrics->cards($tenantId, $now),
@@ -131,23 +134,4 @@ class DashboardController extends Controller
         };
     }
 
-    /**
-     * The timezone to render times in. Falls back to UTC rather than guessing.
-     */
-    private function userTimezone(?array $user): string
-    {
-        $timezone = trim((string) ($user['timezone'] ?? ''));
-
-        if ($timezone === '') {
-            return 'UTC';
-        }
-
-        try {
-            new \DateTimeZone($timezone);
-
-            return $timezone;
-        } catch (\Exception) {
-            return 'UTC';
-        }
-    }
 }

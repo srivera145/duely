@@ -2,10 +2,13 @@
 
 namespace Keel\App\Controllers;
 
+use Keel\App\Models\Client;
 use Keel\App\Models\EmailAccount;
+use Keel\App\Services\Clock;
 use Keel\App\Services\MailAccountService;
 use Keel\App\Services\ProviderPresets;
 use Keel\App\Services\TenantContext;
+use Keel\App\Services\Timezones;
 use Keel\Core\Activity;
 use Keel\Core\Controller;
 use Keel\Core\Request;
@@ -50,6 +53,77 @@ class SettingsController extends Controller
     /**
      * POST /api/email-account/preset — prefill hosts and ports for an address.
      */
+    /**
+     * GET /settings/timezone — the workspace's display zone.
+     */
+    public function timezone(Request $request): void
+    {
+        $tenantId = TenantContext::requireId();
+        $current = Timezones::forWorkspace($tenantId);
+
+        $this->view('settings.timezone', [
+            'title' => 'Timezone - Duely',
+            'current' => $current,
+            'timezones' => Timezones::catalogue(),
+            'nowLocal' => Timezones::render(Clock::now(), $current, 'l j F, H:i'),
+            'nowUtc' => Clock::now()->format('H:i'),
+            'clientsOnDefault' => Client::countOnTimezone($tenantId, Timezones::DEFAULT),
+            'notice' => $request->query['notice'] ?? null,
+            'error' => $request->query['error'] ?? null,
+        ]);
+    }
+
+    /**
+     * POST /settings/timezone
+     */
+    public function saveTimezone(Request $request): never
+    {
+        $tenantId = TenantContext::requireId();
+        $name = (string) $request->input('timezone', '');
+
+        if (!Timezones::setForWorkspace($tenantId, $name)) {
+            $this->redirect('/settings/timezone?error=' . rawurlencode(
+                '"' . $name . '" is not a timezone Duely recognises.'
+            ));
+        }
+
+        Activity::log('settings.timezone_changed', 'Organization', $tenantId, ['timezone' => $name]);
+
+        $this->redirect('/settings/timezone?notice=' . rawurlencode('Times are now shown in ' . $name . '.'));
+    }
+
+    /**
+     * POST /api/settings/timezone/detect — adopt the browser's zone as the
+     * workspace default.
+     *
+     * Called once from onboarding. It only ever fills in a workspace still on
+     * the UTC default: a zone somebody chose is never overwritten by whatever
+     * machine they happen to be sitting at, and a user travelling with a laptop
+     * should not find their invoices relabelled on landing.
+     *
+     * A default rather than a decision, which is why it needs no click. The
+     * onboarding card shows the result and offers a select to change it.
+     */
+    public function detectTimezone(Request $request): void
+    {
+        $tenantId = TenantContext::requireId();
+        $current = Timezones::forWorkspace($tenantId);
+
+        if ($current !== Timezones::DEFAULT) {
+            $this->json(['timezone' => $current, 'changed' => false]);
+        }
+
+        $detected = (string) $request->input('timezone', '');
+
+        if (!Timezones::setForWorkspace($tenantId, $detected)) {
+            $this->json(['timezone' => $current, 'changed' => false], 422);
+        }
+
+        Activity::log('settings.timezone_detected', 'Organization', $tenantId, ['timezone' => $detected]);
+
+        $this->json(['timezone' => $detected, 'changed' => true]);
+    }
+
     public function preset(Request $request): void
     {
         TenantContext::requireId();

@@ -29,6 +29,35 @@ class Client extends BaseModel
         ];
     }
 
+    /**
+     * How many clients are still on a given timezone.
+     *
+     * Used to surface the backfill: existing clients all default to UTC, which
+     * is almost certainly wrong once a workspace says it is somewhere else.
+     */
+    public static function countOnTimezone(int $tenantId, string $timezone): int
+    {
+        $sql = 'SELECT COUNT(*) FROM clients
+                WHERE tenant_id = ? AND is_archived = 0 AND timezone = ?';
+
+        return (int) static::run($sql, [$tenantId, $timezone])->fetchColumn();
+    }
+
+    /**
+     * Move clients still on one timezone onto another.
+     *
+     * Only ever called from an explicit user action. Nothing backfills silently:
+     * moving a client's zone moves every reminder scheduled for them by hours,
+     * and the person who knows which clients are where is the user.
+     */
+    public static function retimezone(int $tenantId, string $from, string $to): int
+    {
+        $sql = 'UPDATE clients SET timezone = ?
+                WHERE tenant_id = ? AND is_archived = 0 AND timezone = ?';
+
+        return static::run($sql, [$to, $tenantId, $from])->rowCount();
+    }
+
     public static function findByEmail(int $tenantId, string $email): ?array
     {
         return static::findOneBy($tenantId, 'email', strtolower(trim($email)));

@@ -44,6 +44,7 @@ $navSections = [
     'settings' => [
         'Email' => '/settings/email',
         'Payments' => '/settings/payments',
+        'Timezone' => '/settings/timezone',
     ],
 ];
 

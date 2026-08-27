@@ -68,6 +68,11 @@ class ColumnMapper
                 'required' => false,
                 'help' => 'Included in reminders when present.',
             ],
+            'timezone' => [
+                'label' => 'Client timezone',
+                'required' => false,
+                'help' => 'An IANA name like America/Denver. Unmapped uses your workspace timezone.',
+            ],
             'notes' => [
                 'label' => 'Notes',
                 'required' => false,
@@ -123,6 +128,9 @@ class ColumnMapper
         ],
         'payment_url' => [
             'payment link', 'payment url', 'pay link', 'pay url', 'checkout url', 'link',
+        ],
+        'timezone' => [
+            'client timezone', 'timezone', 'time zone', 'tz', 'zone',
         ],
         'notes' => [
             'notes', 'note', 'description', 'memo', 'comment', 'comments', 'details',

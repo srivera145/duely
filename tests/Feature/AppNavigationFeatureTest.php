@@ -65,6 +65,7 @@ class AppNavigationFeatureTest extends TestCase
             'Sequences' => ['/sequences'],
             'Email' => ['/settings/email'],
             'Payments' => ['/settings/payments'],
+            'Timezone' => ['/settings/timezone'],
         ];
     }
 

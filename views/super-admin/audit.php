@@ -41,7 +41,10 @@ require __DIR__ . '/_layout.php';
                     <tbody>
                         <?php foreach ($entries as $entry): ?>
                         <tr class="border-b border-card-border">
-                            <td class="p-3 font-mono text-xs text-text-muted"><?= $e($entry['created_at']) ?></td>
+                            <td class="p-3 font-mono text-xs text-text-muted"><?= $e(
+                                \Keel\App\Services\Timezones::renderStored($entry['created_at'], $timezone ?? 'UTC')
+                                ?? $entry['created_at']
+                            ) ?></td>
                             <td class="p-3 text-text-muted"><?= $e($entry['super_admin_email']) ?></td>
                             <td class="p-3">
                                 <span class="rounded px-1.5 py-0.5 text-xs font-semibold <?= match ($entry['kind']) {

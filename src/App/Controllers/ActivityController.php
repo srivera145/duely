@@ -6,6 +6,7 @@ use Keel\App\Models\User;
 use Keel\Core\Auth;
 use Keel\App\Services\SupportAccessLog;
 use Keel\App\Services\TenantContext;
+use Keel\App\Services\Timezones;
 use Keel\App\Support\SuperAdminNav;
 use Keel\Core\Controller;
 use Keel\Core\Database;
@@ -30,6 +31,7 @@ class ActivityController extends Controller
 
         $this->view('settings.activity', [
             'title' => 'Organization Activity',
+            'timezone' => Timezones::forWorkspace($organizationId),
             'logs' => $logs,
             'currentPage' => $currentPage,
             'totalPages' => $totalPages,
@@ -51,6 +53,7 @@ class ActivityController extends Controller
 
         $this->view('super-admin.activity', [
             'title' => 'Platform Activity',
+            'timezone' => Timezones::forWorkspace(TenantContext::requireId()),
             'logs' => $logs,
             'currentPage' => $currentPage,
             'totalPages' => $totalPages,

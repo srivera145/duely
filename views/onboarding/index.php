@@ -50,6 +50,55 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
             </p>
         </div>
 
+        <!--
+            The workspace timezone, prefilled from the browser.
+            Not a step, and not blocking: it fills itself in and says what it
+            did, because a user who has to answer a timezone question before
+            seeing the product will answer it wrong.
+        -->
+        <div class="mb-6 rounded-xl border border-card-border bg-card px-4 py-3" data-timezone-card hidden>
+            <p class="text-sm text-text-muted">
+                Times are shown in
+                <strong class="text-text-strong" data-timezone-name></strong>.
+                <a href="/settings/timezone" class="text-brand hover:underline">Change</a>
+            </p>
+        </div>
+
+        <script>
+            (function () {
+                var card = document.querySelector('[data-timezone-card]');
+                if (!card) return;
+
+                var detected;
+                try {
+                    detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                } catch (error) {
+                    return;
+                }
+
+                if (!detected) return;
+
+                var show = function (zone) {
+                    card.querySelector('[data-timezone-name]').textContent = zone;
+                    card.hidden = false;
+                };
+
+                fetch('/api/settings/timezone/detect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': <?= json_encode(\Keel\Core\Csrf::token()) ?>
+                    },
+                    body: JSON.stringify({ timezone: detected })
+                })
+                    .then(function (response) { return response.json(); })
+                    // The endpoint returns the zone actually in force, which is
+                    // the existing one if somebody had already chosen.
+                    .then(function (body) { if (body && body.timezone) show(body.timezone); })
+                    .catch(function () {});
+            })();
+        </script>
+
         <!-- Progress -->
         <div class="mb-8">
             <div class="flex items-center justify-between text-sm">

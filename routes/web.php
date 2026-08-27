@@ -257,6 +257,13 @@ $router->post('/impersonation/stop', [ImpersonationController::class, 'stop']);
             $router->post('/api/sequences/{id}/delete', [SequenceController::class, 'destroy']);
 
             // Duely: the mailbox reminders are sent from and replies are read out of.
+            // How Duely labels the times it shows. Presentation only -- storage
+            // stays UTC and delivery is timed against each client's own zone.
+            $router->get('/settings/timezone', [SettingsController::class, 'timezone']);
+            $router->post('/settings/timezone', [SettingsController::class, 'saveTimezone']);
+            $router->post('/api/settings/timezone/detect', [SettingsController::class, 'detectTimezone']);
+            $router->post('/clients/timezone-backfill', [ClientController::class, 'backfillTimezones']);
+
             $router->get('/settings/email', [SettingsController::class, 'email']);
             $router->post('/api/email-account/preset', [SettingsController::class, 'preset']);
             $router->post('/api/email-account/test', [SettingsController::class, 'test']);

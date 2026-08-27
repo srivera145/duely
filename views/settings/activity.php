@@ -45,7 +45,10 @@ $totalPages = $totalPages ?? 1;
                     <?php foreach ($logs as $log): ?>
                     <?php $metadata = $log['metadata'] ? json_decode((string) $log['metadata'], true) : null; ?>
                     <tr>
-                        <td><?= htmlspecialchars((string) $log['created_at']) ?></td>
+                        <td><?= htmlspecialchars((string) (
+                            \Keel\App\Services\Timezones::renderStored($log['created_at'], $timezone ?? 'UTC')
+                            ?? $log['created_at']
+                        )) ?></td>
                         <td class="font-medium text-text-strong"><?= htmlspecialchars((string) $log['action']) ?></td>
                         <td><?= htmlspecialchars((string) ($log['subject_type'] ?? '-')) ?>#<?= htmlspecialchars((string) ($log['subject_id'] ?? '-')) ?></td>
                         <td><?= htmlspecialchars((string) ($log['user_id'] ?? '-')) ?></td>

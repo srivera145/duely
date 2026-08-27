@@ -3,6 +3,8 @@
 namespace Keel\App\Controllers\SuperAdmin;
 
 use Keel\App\Services\SupportAccessLog;
+use Keel\App\Services\TenantContext;
+use Keel\App\Services\Timezones;
 use Keel\Core\Database;
 use Keel\Core\Request;
 use Keel\Core\Session;
@@ -130,6 +132,7 @@ class SupportController extends BaseController
             'title' => 'Audit — Duely',
             'entries' => (new SupportAccessLog())->recent(200, $tenantId ?: null),
             'filterTenantId' => $tenantId,
+            'timezone' => Timezones::forWorkspace(TenantContext::requireId()),
         ]);
     }
 

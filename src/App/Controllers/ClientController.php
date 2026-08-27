@@ -6,6 +6,7 @@ use Keel\App\Models\Client;
 use Keel\App\Models\Invoice;
 use Keel\App\Services\MoneyParser;
 use Keel\App\Services\TenantContext;
+use Keel\App\Services\Timezones;
 use Keel\Core\Activity;
 use Keel\Core\Controller;
 use Keel\Core\Request;
@@ -33,12 +34,21 @@ class ClientController extends Controller
             ? Client::search($tenantId, $search, self::PER_PAGE)
             : Client::withOutstanding($tenantId, self::PER_PAGE);
 
+        $workspaceTimezone = Timezones::forWorkspace($tenantId);
+
         $this->view('clients.index', [
             'title' => 'Clients - Duely',
             'metaDescription' => 'Everyone Duely sends invoice reminders to.',
             'clients' => array_map([$this, 'presentRow'], $clients),
             'search' => $search,
             'total' => Client::count($tenantId),
+            'workspaceTimezone' => $workspaceTimezone,
+            // Only worth flagging once the workspace has said it is somewhere
+            // else. On a UTC workspace a UTC client is not a mismatch.
+            'clientsOnDefault' => $workspaceTimezone === Timezones::DEFAULT
+                ? 0
+                : Client::countOnTimezone($tenantId, Timezones::DEFAULT),
+            'notice' => $request->query['notice'] ?? null,
         ]);
     }
 
@@ -47,13 +57,48 @@ class ClientController extends Controller
      */
     public function create(Request $request): void
     {
-        TenantContext::requireId();
+        $workspaceTimezone = Timezones::forWorkspace(TenantContext::requireId());
 
         $this->view('clients.edit', [
             'title' => 'New client - Duely',
             'client' => null,
             'invoices' => [],
+            'timezones' => Timezones::catalogue(),
+            'workspaceTimezone' => $workspaceTimezone,
         ]);
+    }
+
+    /**
+     * POST /clients/timezone-backfill — move every UTC client onto the
+     * workspace zone.
+     *
+     * Explicit, and only ever from a button the user pressed. Nothing here runs
+     * on a schedule or during a migration: changing a client's timezone moves
+     * every reminder scheduled for them by hours, and the person who knows which
+     * clients are actually where is the user, not Duely.
+     */
+    public function backfillTimezones(Request $request): never
+    {
+        $tenantId = TenantContext::requireId();
+        $workspace = Timezones::forWorkspace($tenantId);
+
+        if ($workspace === Timezones::DEFAULT) {
+            $this->redirect('/clients?notice=' . rawurlencode(
+                'Set a workspace timezone first, on the timezone settings page.'
+            ));
+        }
+
+        $moved = Client::retimezone($tenantId, Timezones::DEFAULT, $workspace);
+
+        Activity::log('clients.timezone_backfilled', 'Organization', $tenantId, [
+            'from' => Timezones::DEFAULT,
+            'to' => $workspace,
+            'clients' => $moved,
+        ]);
+
+        $this->redirect('/clients?notice=' . rawurlencode(
+            $moved . ' ' . ($moved === 1 ? 'client' : 'clients') . ' moved to ' . $workspace . '.'
+        ));
     }
 
     /**
@@ -71,6 +116,8 @@ class ClientController extends Controller
         $this->view('clients.edit', [
             'title' => $client['name'] . ' - Duely',
             'client' => $client,
+            'timezones' => Timezones::catalogue(),
+            'workspaceTimezone' => Timezones::forWorkspace($tenantId),
             'invoices' => Invoice::forClient($tenantId, (int) $client['id'], 100),
         ]);
     }
@@ -88,7 +135,8 @@ class ClientController extends Controller
             'email' => strtolower(trim((string) $request->input('email', ''))),
             'company' => trim((string) $request->input('company', '')) ?: null,
             'phone' => trim((string) $request->input('phone', '')) ?: null,
-            'timezone' => trim((string) $request->input('timezone', 'UTC')) ?: 'UTC',
+            'timezone' => trim((string) $request->input('timezone', ''))
+                ?: Timezones::forWorkspace($tenantId),
             'notes' => trim((string) $request->input('notes', '')) ?: null,
         ];
 
@@ -215,6 +263,10 @@ class ClientController extends Controller
             $errors['name'] = 'Enter the client name.';
         } elseif (mb_strlen($input['name']) > 255) {
             $errors['name'] = 'That name is too long.';
+        }
+
+        if (!Timezones::isValid($input['timezone'])) {
+            $errors['timezone'] = '"' . $input['timezone'] . '" is not a timezone Duely recognises.';
         }
 
         if ($input['email'] === '') {

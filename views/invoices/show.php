@@ -200,7 +200,9 @@ $eventStyles = [
 
                     <div class="flex flex-wrap items-baseline justify-between gap-2">
                         <p class="font-medium text-text-strong"><?= $e($event['title']) ?></p>
-                        <time class="text-xs text-text-muted"><?= $e($event['at']) ?></time>
+                        <time class="text-xs text-text-muted"><?= $e(
+                            \Keel\App\Services\Timezones::renderStored($event['at'], $timezone) ?? $event['at']
+                        ) ?></time>
                     </div>
 
                     <?php if (!empty($event['detail'])): ?>

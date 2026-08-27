@@ -3,6 +3,7 @@
 namespace Keel\App\Services;
 
 use Keel\App\Models\Client;
+use Keel\App\Services\Timezones;
 use Keel\App\Models\Invoice;
 use Keel\Core\Database;
 use Throwable;
@@ -257,6 +258,10 @@ class CsvImporter
         $clientsMatched = 0;
         $errors = $validation['errors'];
 
+        // Resolved once, not per row: it is the same for every client in the
+        // file and the query is not free.
+        $workspaceTimezone = Timezones::forWorkspace($tenantId);
+
         $connection = Database::connection();
 
         foreach ($validation['valid'] as $record) {
@@ -281,6 +286,9 @@ class CsvImporter
                         'name' => $record['client_name'],
                         'email' => $record['client_email'],
                         'company' => $record['client_company'],
+                        // A CSV with no timezone column lands on the workspace
+                        // default, not on UTC.
+                        'timezone' => $record['client_timezone'] ?? $workspaceTimezone,
                     ]);
                     $clientsCreated++;
                 }
@@ -432,6 +440,20 @@ class CsvImporter
             return ['record' => null, 'error' => '"' . $paymentUrl . '" is not a valid link.'];
         }
 
+        // Rejected here rather than left for ChaseScheduler to fall back on.
+        // That fallback is a last-resort guard against corrupt data; a typo in a
+        // spreadsheet is not corrupt data, and silently treating it as UTC moves
+        // every reminder for that client by hours without telling anybody.
+        $timezone = $read('timezone');
+
+        if ($timezone !== '' && !Timezones::isValid($timezone)) {
+            return [
+                'record' => null,
+                'error' => '"' . $timezone . '" is not a timezone Duely recognises. '
+                    . 'Use an IANA name like America/Denver.',
+            ];
+        }
+
         return [
             'record' => [
                 'number' => $number,
@@ -444,6 +466,9 @@ class CsvImporter
                 'issue_date' => $issueDate,
                 'status' => $this->resolveStatus($read('status')),
                 'payment_url' => $paymentUrl ?: null,
+                // Empty means "no opinion". The commit step fills in the
+                // workspace default, which it knows and this method does not.
+                'client_timezone' => $timezone ?: null,
                 'notes' => $read('notes') ?: null,
             ],
             'error' => null,
@@ -501,6 +526,14 @@ class CsvImporter
         if (strcasecmp(trim((string) $client['name']), (string) $client['email']) === 0
             && $record['client_name'] !== '') {
             $updates['name'] = $record['client_name'];
+        }
+
+        // An explicit timezone in the file fills in a client still sitting on
+        // the default, but never overwrites one somebody chose. The same rule as
+        // company and name: improve the data, do not trample it.
+        if (($record['client_timezone'] ?? null) !== null
+            && trim((string) $client['timezone']) === Timezones::DEFAULT) {
+            $updates['timezone'] = $record['client_timezone'];
         }
 
         if ($updates !== []) {

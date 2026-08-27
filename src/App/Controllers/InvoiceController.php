@@ -10,6 +10,7 @@ use Keel\App\Services\DateParser;
 use Keel\App\Services\MoneyParser;
 use Keel\App\Services\PaymentLinkService;
 use Keel\App\Services\TenantContext;
+use Keel\App\Services\Timezones;
 use Keel\Core\Activity;
 use Keel\Core\Controller;
 use Keel\Core\Request;
@@ -164,6 +165,7 @@ class InvoiceController extends Controller
             // What the client is about to receive. Worked out rather than
             // guessed at -- finding out from the client is not acceptable.
             'paymentPlan' => (new PaymentLinkService())->plan($tenantId, $timeline['invoice']),
+            'timezone' => Timezones::forWorkspace($tenantId),
         ]);
     }
 
