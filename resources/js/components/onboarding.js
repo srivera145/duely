@@ -55,6 +55,24 @@ export const initOnboarding = () => {
 		window.location.reload();
 	});
 
+	// "No thanks" on the optional payment step. Dismisses one step, not the
+	// wizard: the other four carry on, and connecting Stripe later still marks
+	// this one done for the real reason.
+	document.getElementById('dismiss-payment')?.addEventListener('click', async (event) => {
+		const button = event.currentTarget;
+		button.disabled = true;
+
+		const { ok, body } = await postJson('/api/onboarding/dismiss-payment');
+
+		if (!ok) {
+			button.disabled = false;
+			showError(body.error || 'That could not be recorded.');
+			return;
+		}
+
+		window.location.reload();
+	});
+
 	document.getElementById('skip-onboarding')?.addEventListener('click', async () => {
 		const { ok, body } = await postJson('/api/onboarding/skip');
 

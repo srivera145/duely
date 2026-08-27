@@ -29,8 +29,81 @@ use Throwable;
  */
 class PaymentLinkService
 {
+    /** Workspace defaults. */
+    public const WORKSPACE_ALWAYS = 'always';
+    public const WORKSPACE_MANUAL_ONLY = 'manual_only';
+    public const WORKSPACE_NEVER = 'never';
+
+    /** Per-invoice overrides. NULL in the column means DEFAULT. */
+    public const INVOICE_DEFAULT = 'default';
+    public const INVOICE_GENERATE = 'generate';
+    public const INVOICE_NONE = 'none';
+
+    public const WORKSPACE_MODES = [
+        self::WORKSPACE_ALWAYS,
+        self::WORKSPACE_MANUAL_ONLY,
+        self::WORKSPACE_NEVER,
+    ];
+
+    public const INVOICE_MODES = [
+        self::INVOICE_DEFAULT,
+        self::INVOICE_GENERATE,
+        self::INVOICE_NONE,
+    ];
+
     public function __construct(private readonly ConnectService $connect = new ConnectService())
     {
+    }
+
+    /**
+     * Whether Duely may generate a link for this invoice, and why.
+     *
+     * ---------------------------------------------------------------------
+     * RESOLUTION ORDER. Do not reorder without reading this.
+     *
+     *   1. A manually pasted link wins. Always, unconditionally, before
+     *      anything else is consulted. It is the user's own URL — their PayPal
+     *      page, their bank, their accountant's portal — and no setting Duely
+     *      owns gets to override or suppress it. `never` does not touch it
+     *      either: that setting governs links *Duely generates*.
+     *   2. The invoice override. `none` suppresses, `generate` forces, and
+     *      both beat the workspace default, because the person setting a mode
+     *      on one invoice knows something about that invoice.
+     *   3. The workspace default.
+     *   4. The connection gates — linked account, charges enabled, invoice
+     *      open, amount above zero.
+     *
+     * The gates come last on purpose. Asking "is this workspace connected"
+     * before "does this invoice even want a link" would make a Stripe round
+     * trip to answer a question already settled locally.
+     * ---------------------------------------------------------------------
+     *
+     * @return array{generate:bool, reason:string}
+     */
+    public static function decide(string $workspaceMode, ?string $invoiceMode): array
+    {
+        $invoiceMode = $invoiceMode === null || $invoiceMode === self::INVOICE_DEFAULT
+            ? null
+            : $invoiceMode;
+
+        if ($invoiceMode === self::INVOICE_NONE) {
+            return ['generate' => false, 'reason' => 'invoice_none'];
+        }
+
+        if ($invoiceMode === self::INVOICE_GENERATE) {
+            // Deliberately above the workspace check: `generate` exists so a
+            // manual_only workspace can still say yes to one invoice. It does
+            // not override `never`, though — see below.
+            return $workspaceMode === self::WORKSPACE_NEVER
+                ? ['generate' => false, 'reason' => 'workspace_never']
+                : ['generate' => true, 'reason' => 'invoice_generate'];
+        }
+
+        return match ($workspaceMode) {
+            self::WORKSPACE_NEVER => ['generate' => false, 'reason' => 'workspace_never'],
+            self::WORKSPACE_MANUAL_ONLY => ['generate' => false, 'reason' => 'workspace_manual_only'],
+            default => ['generate' => true, 'reason' => 'workspace_always'],
+        };
     }
 
     /**
@@ -51,12 +124,80 @@ class PaymentLinkService
         }
 
         if ($existing !== '') {
-            return $existing;
+            // A link Duely made earlier. It still has to satisfy today's
+            // settings: a workspace switched to `never`, or an invoice marked
+            // `none`, means the next reminder carries no button — otherwise
+            // turning the feature off would only affect invoices that had not
+            // been chased yet, which is not what "off" means.
+            $decision = self::decide($this->workspaceMode($tenantId), $invoice['payment_link_mode'] ?? null);
+
+            return $decision['generate'] ? $existing : null;
         }
 
         $result = $this->generate($tenantId, $invoice);
 
         return $result['ok'] ? $result['url'] : null;
+    }
+
+    /**
+     * What the next reminder for this invoice will carry, without making one.
+     *
+     * The invoice page uses this to tell the user what their client is about to
+     * receive. Guessing at that is how somebody finds out from the client.
+     *
+     * @return array{will_send:bool, kind:string, url:?string, reason:string}
+     */
+    public function plan(int $tenantId, array $invoice): array
+    {
+        $existing = trim((string) ($invoice['payment_url'] ?? ''));
+        $isManual = $existing !== '' && !(bool) ($invoice['payment_url_is_generated'] ?? false);
+
+        if ($isManual) {
+            return ['will_send' => true, 'kind' => 'manual', 'url' => $existing, 'reason' => 'manual_link'];
+        }
+
+        $decision = self::decide($this->workspaceMode($tenantId), $invoice['payment_link_mode'] ?? null);
+
+        if (!$decision['generate']) {
+            return ['will_send' => false, 'kind' => 'none', 'url' => null, 'reason' => $decision['reason']];
+        }
+
+        if ($existing !== '') {
+            return ['will_send' => true, 'kind' => 'generated', 'url' => $existing, 'reason' => $decision['reason']];
+        }
+
+        // Nothing generated yet. Whether one appears depends on the connection,
+        // which is the last gate rather than the first.
+        $status = $this->connect->status($tenantId);
+
+        if (!$status['connected']) {
+            return ['will_send' => false, 'kind' => 'none', 'url' => null, 'reason' => 'not_connected'];
+        }
+
+        if (!$status['charges_enabled']) {
+            return ['will_send' => false, 'kind' => 'none', 'url' => null, 'reason' => 'charges_disabled'];
+        }
+
+        if (($invoice['status'] ?? '') !== Invoice::STATUS_OPEN) {
+            return ['will_send' => false, 'kind' => 'none', 'url' => null, 'reason' => 'not_open'];
+        }
+
+        return ['will_send' => true, 'kind' => 'pending', 'url' => null, 'reason' => $decision['reason']];
+    }
+
+    /**
+     * This workspace's default. Read straight from the column, and independent
+     * of `stripe_account_id` — disconnecting Stripe must not reset it.
+     */
+    public function workspaceMode(int $tenantId): string
+    {
+        $statement = Database::connection()->prepare(
+            'SELECT payment_link_mode FROM organizations WHERE id = ? LIMIT 1'
+        );
+        $statement->execute([$tenantId]);
+        $mode = (string) ($statement->fetchColumn() ?: '');
+
+        return in_array($mode, self::WORKSPACE_MODES, true) ? $mode : self::WORKSPACE_ALWAYS;
     }
 
     /**
@@ -66,6 +207,18 @@ class PaymentLinkService
      */
     public function generate(int $tenantId, array $invoice): array
     {
+        // Settled locally, before anything reaches out to Stripe. See decide()
+        // for the order and why it is that order.
+        $decision = self::decide($this->workspaceMode($tenantId), $invoice['payment_link_mode'] ?? null);
+
+        if (!$decision['generate']) {
+            return $this->no($decision['reason'], match ($decision['reason']) {
+                'invoice_none' => 'This invoice is set to go out without a pay button.',
+                'workspace_never' => 'This workspace has Duely pay buttons switched off.',
+                default => 'This workspace only uses payment links you add yourself.',
+            });
+        }
+
         $status = $this->connect->status($tenantId);
 
         if (!$status['connected']) {

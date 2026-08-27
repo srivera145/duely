@@ -37,7 +37,7 @@ class OnboardingController extends Controller
 
         $this->view('onboarding.index', [
             'title' => 'Getting started - Duely',
-            'metaDescription' => 'Four steps to your first automatic reminder.',
+            'metaDescription' => 'A few steps to your first automatic reminder.',
             'progress' => $progress,
             'status' => $this->plans->status($tenantId),
             'founding' => $this->plans->foundingAvailability(),
@@ -72,6 +72,22 @@ class OnboardingController extends Controller
     /**
      * POST /api/onboarding/resume — come back to a wizard skipped earlier.
      */
+    /**
+     * POST /api/onboarding/dismiss-payment — "no thanks" on the optional step.
+     *
+     * Not the same as skipping the wizard: the other four steps carry on as
+     * they were, and connecting Stripe later still marks this one done.
+     */
+    public function dismissPayment(Request $request): void
+    {
+        $tenantId = TenantContext::requireId();
+        $this->onboarding->dismissPayment($tenantId);
+
+        Activity::log('onboarding.payment_dismissed', 'Organization', $tenantId);
+
+        $this->json(['progress' => $this->onboarding->progress($tenantId)]);
+    }
+
     public function resume(Request $request): void
     {
         $tenantId = TenantContext::requireId();

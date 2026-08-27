@@ -34,6 +34,9 @@ class Invoice extends BaseModel
             'paid_at',
             'paid_source',
             'payment_url',
+            // Per-invoice pay-button override. NULL means "follow the
+            // workspace default", which is the common case.
+            'payment_link_mode',
             'external_ref',
             'notes',
         ];

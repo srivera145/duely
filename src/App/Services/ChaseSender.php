@@ -157,6 +157,12 @@ class ChaseSender
      */
     private function ensurePaymentLinks(int $tenantId, DateTimeImmutable $now, int $limit = 50): void
     {
+        // The mode gate is in the WHERE clause, not in a filter afterwards.
+        // A row that reaches the loop costs a Stripe round trip, so an invoice
+        // that was never going to get a link must not be selected in the first
+        // place. This mirrors PaymentLinkService::decide() — if that changes,
+        // this changes with it, and the test asserts on the query for exactly
+        // that reason.
         $statement = Database::connection()->prepare(
             'SELECT i.*
              FROM chases c
@@ -170,6 +176,18 @@ class ChaseSender
                AND (i.payment_url IS NULL OR i.payment_url = "")
                AND o.stripe_account_id IS NOT NULL
                AND o.stripe_charges_enabled = 1
+               -- never beats everything Duely generates, including an invoice
+               -- asking for one.
+               AND o.payment_link_mode <> ?
+               -- Otherwise: the invoice decides if it has an opinion, and the
+               -- workspace decides if it does not.
+               AND (
+                     i.payment_link_mode = ?
+                  OR (
+                       (i.payment_link_mode IS NULL OR i.payment_link_mode = ?)
+                       AND o.payment_link_mode = ?
+                     )
+               )
              ORDER BY c.next_send_at ASC
              LIMIT ' . max(1, $limit)
         );
@@ -180,6 +198,10 @@ class ChaseSender
             Chase::STATUS_ACTIVE,
             Clock::toDatabase($now),
             Invoice::STATUS_OPEN,
+            PaymentLinkService::WORKSPACE_NEVER,
+            PaymentLinkService::INVOICE_GENERATE,
+            PaymentLinkService::INVOICE_DEFAULT,
+            PaymentLinkService::WORKSPACE_ALWAYS,
         ]);
 
         foreach ($statement->fetchAll() ?: [] as $invoice) {

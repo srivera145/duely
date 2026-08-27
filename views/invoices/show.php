@@ -122,6 +122,32 @@ $eventStyles = [
                         <?= $e(\Keel\App\Services\RelativeTime::phrase(\Keel\App\Services\Clock::fromDatabase($chase['next_send_at']))) ?>
                     </p>
                     <?php endif; ?>
+
+                    <?php
+                    // Whether the next reminder carries a pay button, and which
+                    // link. A user should never have to open their client's
+                    // inbox to find out what Duely sent on their behalf.
+                    $plan = $paymentPlan ?? ['will_send' => false, 'kind' => 'none', 'url' => null, 'reason' => ''];
+                    $planLine = match (true) {
+                        $plan['kind'] === 'manual' => 'Carries your own payment link',
+                        $plan['kind'] === 'generated' => 'Carries a Duely pay button',
+                        $plan['kind'] === 'pending' => 'Will carry a Duely pay button',
+                        $plan['reason'] === 'invoice_none' => 'No pay button — you turned it off for this invoice',
+                        $plan['reason'] === 'workspace_never' => 'No pay button — Duely pay buttons are off for this workspace',
+                        $plan['reason'] === 'workspace_manual_only' => 'No pay button — this workspace only uses links you add yourself',
+                        $plan['reason'] === 'charges_disabled' => 'No pay button — Stripe is not letting this account charge yet',
+                        $plan['reason'] === 'not_connected' => 'No pay button — no Stripe account connected',
+                        default => 'No pay button',
+                    };
+                    ?>
+                    <p class="mt-1 text-xs <?= $plan['will_send'] ? 'text-text' : 'text-text-muted' ?>">
+                        <?= $e($planLine) ?>
+                        <?php if ($plan['url'] !== null): ?>
+                        &mdash;
+                        <a href="<?= $e($plan['url']) ?>" rel="noopener noreferrer" target="_blank"
+                           class="text-brand hover:underline break-all"><?= $e($plan['url']) ?></a>
+                        <?php endif; ?>
+                    </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <?php if (in_array($chase['status'], ['scheduled', 'active'], true)): ?>

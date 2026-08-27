@@ -8,6 +8,7 @@ use Keel\App\Models\Invoice;
 use Keel\App\Services\ConnectService;
 use Keel\App\Services\DateParser;
 use Keel\App\Services\MoneyParser;
+use Keel\App\Services\PaymentLinkService;
 use Keel\App\Services\TenantContext;
 use Keel\Core\Activity;
 use Keel\Core\Controller;
@@ -100,6 +101,7 @@ class InvoiceController extends Controller
             // same one a hand-typed invoice takes, with the same validation.
             'draft' => $this->draftFromQuery($request),
             'canTakePayments' => (new ConnectService())->status($tenantId)['can_take_payments'],
+            'workspacePaymentMode' => (new PaymentLinkService())->workspaceMode($tenantId),
         ]);
     }
 
@@ -121,6 +123,7 @@ class InvoiceController extends Controller
             'clients' => Client::active($tenantId, 500),
             'chase' => Chase::forInvoice($tenantId, (int) $invoice['id']),
             'canTakePayments' => (new ConnectService())->status($tenantId)['can_take_payments'],
+            'workspacePaymentMode' => (new PaymentLinkService())->workspaceMode($tenantId),
         ]);
     }
 
@@ -144,6 +147,9 @@ class InvoiceController extends Controller
             'rail' => $timeline['rail'],
             'events' => $timeline['events'],
             'sequences' => \Keel\App\Models\Sequence::active($tenantId),
+            // What the client is about to receive. Worked out rather than
+            // guessed at -- finding out from the client is not acceptable.
+            'paymentPlan' => (new PaymentLinkService())->plan($tenantId, $timeline['invoice']),
         ]);
     }
 
@@ -192,6 +198,7 @@ class InvoiceController extends Controller
             'due_date' => $input['due_date'],
             'status' => $input['status'],
             'payment_url' => $input['payment_url'],
+            'payment_link_mode' => $input['payment_link_mode'],
             'notes' => $input['notes'],
         ];
 
@@ -333,6 +340,15 @@ class InvoiceController extends Controller
         $status = strtolower(trim((string) $request->input('status', Invoice::STATUS_OPEN)));
         $paymentUrl = trim((string) $request->input('payment_url', ''));
 
+        // The pay-button choice. Pasting a URL is itself the choice -- the form
+        // does not make the user set both, so a link plus any override is read
+        // as "use my link", which is what the resolution order does anyway.
+        $linkMode = strtolower(trim((string) $request->input('payment_link_mode', '')));
+
+        if ($paymentUrl !== '') {
+            $linkMode = '';
+        }
+
         return [
             'client_id' => (int) $request->input('client_id', 0),
             'number' => trim((string) $request->input('number', '')),
@@ -346,6 +362,13 @@ class InvoiceController extends Controller
                 ? $status
                 : Invoice::STATUS_OPEN,
             'payment_url' => $paymentUrl !== '' ? $paymentUrl : null,
+            // NULL rather than 'default': the column's whole point is that an
+            // absent value means "follow the workspace", and storing the word
+            // would make a later default change look like a per-invoice choice.
+            'payment_link_mode' => in_array($linkMode, PaymentLinkService::INVOICE_MODES, true)
+                && $linkMode !== PaymentLinkService::INVOICE_DEFAULT
+                    ? $linkMode
+                    : null,
             'notes' => trim((string) $request->input('notes', '')) ?: null,
         ];
     }

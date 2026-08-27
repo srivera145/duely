@@ -88,7 +88,51 @@ class ConnectController extends Controller
 
         Activity::log('connect.completed', 'Organization', $tenantId, ['account_id' => $result['account_id']]);
 
-        $this->redirect('/settings/payments?notice=connected');
+        // Not straight back to the settings page. Connecting Stripe on Tuesday
+        // should not mean a client gets a pay button on Wednesday that the user
+        // never actually chose -- the default is right, but it should be picked
+        // rather than discovered.
+        $this->redirect('/settings/payments/choose');
+    }
+
+    /**
+     * GET /settings/payments/choose — what happens next, and a chance to say.
+     *
+     * Shown once, immediately after connecting. It does not block: the column
+     * already holds `always`, so a user who reads this and closes the tab is in
+     * exactly the state the page describes, not an undefined one.
+     */
+    public function choose(Request $request): void
+    {
+        $tenantId = TenantContext::requireId();
+        $status = $this->connect->status($tenantId);
+
+        if (!$status['connected']) {
+            $this->redirect('/settings/payments');
+        }
+
+        $this->view('settings.payments-choose', [
+            'title' => 'How should Duely use Stripe? - Duely',
+            'status' => $status,
+            'openInvoices' => Invoice::countWithFilters($tenantId, ['status' => Invoice::STATUS_OPEN]),
+        ]);
+    }
+
+    /**
+     * POST /settings/payments/mode — set the workspace default.
+     */
+    public function setMode(Request $request): never
+    {
+        $tenantId = TenantContext::requireId();
+        $mode = (string) $request->input('payment_link_mode', '');
+
+        if (!$this->connect->setPaymentMode($tenantId, $mode)) {
+            $this->redirect('/settings/payments?error=' . rawurlencode('That is not a setting Duely recognises.'));
+        }
+
+        Activity::log('connect.mode_set', 'Organization', $tenantId, ['mode' => $mode]);
+
+        $this->redirect('/settings/payments?notice=mode_' . $mode);
     }
 
     /**

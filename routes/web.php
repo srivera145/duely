@@ -121,6 +121,7 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->get('/api/onboarding/progress', [OnboardingController::class, 'progress']);
             $router->post('/api/onboarding/reviewed', [OnboardingController::class, 'markReviewed']);
             $router->post('/api/onboarding/skip', [OnboardingController::class, 'skip']);
+            $router->post('/api/onboarding/dismiss-payment', [OnboardingController::class, 'dismissPayment']);
             $router->post('/api/onboarding/resume', [OnboardingController::class, 'resume']);
 
             // Duely: plans and trials.
@@ -206,6 +207,8 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
             $router->get('/settings/payments/callback', [ConnectController::class, 'callback']);
             $router->post('/settings/payments/connect', [ConnectController::class, 'connect']);
             $router->post('/settings/payments/refresh', [ConnectController::class, 'refresh']);
+            $router->get('/settings/payments/choose', [ConnectController::class, 'choose']);
+            $router->post('/settings/payments/mode', [ConnectController::class, 'setMode']);
             $router->post('/settings/payments/disconnect', [ConnectController::class, 'disconnect']);
             $router->post('/api/invoices/{id}/payment-link', [ConnectController::class, 'createLink']);
         });

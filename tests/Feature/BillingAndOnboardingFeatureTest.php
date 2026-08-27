@@ -697,7 +697,8 @@ class BillingAndOnboardingFeatureTest extends TestCase
         self::assertSame(OnboardingService::STEP_EMAIL, $fresh['current']);
         self::assertSame(
             [OnboardingService::STEP_EMAIL, OnboardingService::STEP_INVOICE,
-             OnboardingService::STEP_SEQUENCE, OnboardingService::STEP_CHASING],
+             OnboardingService::STEP_SEQUENCE, OnboardingService::STEP_PAYMENT,
+             OnboardingService::STEP_CHASING],
             array_column($fresh['steps'], 'key'),
             'a mailbox has to exist before an invoice is worth chasing'
         );
@@ -711,7 +712,9 @@ class BillingAndOnboardingFeatureTest extends TestCase
         $afterImport = $onboarding->progress($this->tenantId);
 
         self::assertSame(2, $afterImport['completed_count']);
-        self::assertSame(50, $afterImport['percent']);
+        self::assertSame(40, $afterImport['percent'], 'two of five steps');
+        // The optional payment step is skipped over: it is offered, never the
+        // thing the wizard asks for next.
         self::assertSame(OnboardingService::STEP_SEQUENCE, $afterImport['current']);
 
         $onboarding->markReviewed($this->tenantId);
@@ -726,10 +729,105 @@ class BillingAndOnboardingFeatureTest extends TestCase
 
         $finished = $onboarding->progress($this->tenantId);
 
+        // Complete counts the required steps. The percentage counts all of
+        // them, so a workspace that has not touched payments reads as finished
+        // but not as 100% -- which is the truth.
         self::assertTrue($finished['complete']);
-        self::assertSame(100, $finished['percent']);
+        self::assertSame(80, $finished['percent']);
         self::assertNull($finished['current']);
     }
+
+    public function testTheOptionalPaymentStepDoesNotHoldUpCompletion(): void
+    {
+        $onboarding = new OnboardingService();
+
+        // Get the four required steps done and leave payments untouched.
+        $accountId = $this->mailbox();
+        $clientId = Client::create($this->tenantId, ['name' => 'Bill', 'email' => 'bill@bigco.test']);
+        $invoiceId = $this->invoice($clientId, 'OPTIONAL-1');
+        $onboarding->markReviewed($this->tenantId);
+
+        (new ChaseScheduler())->start(
+            $this->tenantId,
+            $invoiceId,
+            (int) Sequence::defaultSequence($this->tenantId)['id'],
+            $accountId,
+            $this->now
+        );
+
+        $progress = $onboarding->progress($this->tenantId);
+
+        // A user who never wants Duely collecting payment is a finished user,
+        // not a permanently incomplete one.
+        self::assertTrue($progress['complete'], 'The optional step blocked completion.');
+        self::assertNull($progress['current'], 'An optional step must never be the thing being nudged.');
+
+        $payment = $this->step($progress, OnboardingService::STEP_PAYMENT);
+        self::assertFalse($payment['done']);
+        self::assertTrue($payment['optional']);
+        self::assertFalse($payment['required']);
+    }
+
+    public function testThePaymentStepIsDoneEitherByConnectingOrByDeclining(): void
+    {
+        $onboarding = new OnboardingService();
+
+        self::assertFalse(
+            $this->step($onboarding->progress($this->tenantId), OnboardingService::STEP_PAYMENT)['done']
+        );
+
+        // Declining is a completed decision, not an unfinished one.
+        $onboarding->dismissPayment($this->tenantId);
+
+        self::assertTrue(
+            $this->step($onboarding->progress($this->tenantId), OnboardingService::STEP_PAYMENT)['done']
+        );
+    }
+
+    public function testConnectingStripeCompletesThePaymentStepWithoutTheWizard(): void
+    {
+        // Derived like the other steps: somebody who connected Stripe from the
+        // settings page has genuinely done this, wizard or no wizard.
+        Database::connection()
+            ->prepare('UPDATE organizations SET stripe_account_id = ? WHERE id = ?')
+            ->execute(['acct_from_settings', $this->tenantId]);
+
+        self::assertTrue(
+            $this->step((new OnboardingService())->progress($this->tenantId), OnboardingService::STEP_PAYMENT)['done']
+        );
+    }
+
+    public function testDismissingPaymentLeavesTheOtherStepsAlone(): void
+    {
+        $this->signIn();
+
+        $response = $this->postJson('/api/onboarding/dismiss-payment', ['_csrf' => $this->csrfToken()]);
+
+        self::assertSame(200, $response->status);
+
+        $progress = $response->json()['progress'];
+
+        // One step dismissed, not the wizard skipped.
+        self::assertFalse((bool) $progress['skipped']);
+        self::assertSame(OnboardingService::STEP_EMAIL, $progress['current']);
+        self::assertFalse($progress['complete']);
+    }
+
+    /**
+     * @param array<string, mixed> $progress
+     * @return array<string, mixed>
+     */
+    private function step(array $progress, string $key): array
+    {
+        foreach ($progress['steps'] as $step) {
+            if ($step['key'] === $key) {
+                return $step;
+            }
+        }
+
+        self::fail('No such onboarding step: ' . $key);
+    }
+
 
     public function testTheWizardCanBeSkippedAndComeBackTo(): void
     {

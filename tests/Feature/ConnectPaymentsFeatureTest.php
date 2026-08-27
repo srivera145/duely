@@ -456,6 +456,427 @@ class ConnectPaymentsFeatureTest extends TestCase
         self::assertStringNotContainsString('buy.stripe.com', $response->body);
     }
 
+    // ================================================================
+    // The pay-button choice: a workspace default and a per-invoice override.
+    //
+    // Every one of these asserts that a decision the user made is honoured. The
+    // bug being prevented is a client receiving a pay button nobody chose.
+    // ================================================================
+
+    // ---------------------- self-check: unconnected is unchanged in all modes
+
+    public function testAnUnconnectedWorkspaceBehavesTheSameInEveryMode(): void
+    {
+        foreach (PaymentLinkService::WORKSPACE_MODES as $mode) {
+            $this->setWorkspaceMode($mode);
+
+            $invoiceId = $this->invoice('INV-MODE-' . $mode, 18, null);
+            $result = (new PaymentLinkService())->generate(
+                $this->tenantId,
+                Invoice::find($this->tenantId, $invoiceId)
+            );
+
+            self::assertFalse($result['ok'], $mode . ' generated a link with no Stripe account.');
+            self::assertNull(Invoice::find($this->tenantId, $invoiceId)['payment_url']);
+        }
+    }
+
+    // --------------------------- self-check: manual_only generates nothing
+
+    public function testManualOnlyMakesNoLinkAndNoStripeCall(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_MANUAL_ONLY);
+
+        $invoiceId = $this->invoice('INV-MANUAL-ONLY', 18, null);
+        $result = (new PaymentLinkService())->generate(
+            $this->tenantId,
+            Invoice::find($this->tenantId, $invoiceId)
+        );
+
+        self::assertFalse($result['ok']);
+        // The reason proves it stopped at the local gate. A 'stripe_error' here
+        // would mean it reached out with a fake key before deciding.
+        self::assertSame('workspace_manual_only', $result['reason']);
+        self::assertNull(Invoice::find($this->tenantId, $invoiceId)['payment_url']);
+    }
+
+    // ------------------------------- self-check: never spares a pasted link
+
+    public function testNeverStillSendsAManuallyPastedLink(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_NEVER);
+
+        $invoiceId = $this->invoice('INV-NEVER-MANUAL', 18, 'https://pay.me/my-own-link');
+        $invoice = Invoice::find($this->tenantId, $invoiceId);
+
+        // `never` governs links Duely generates. The user's own URL is not
+        // Duely's to suppress.
+        self::assertSame(
+            'https://pay.me/my-own-link',
+            (new PaymentLinkService())->linkFor($this->tenantId, $invoice)
+        );
+
+        $plan = (new PaymentLinkService())->plan($this->tenantId, $invoice);
+        self::assertTrue($plan['will_send']);
+        self::assertSame('manual', $plan['kind']);
+    }
+
+    public function testNeverSuppressesALinkDuelyGeneratedEarlier(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+
+        $invoiceId = $this->invoice('INV-NEVER-GENERATED', 18, 'https://buy.stripe.com/made-earlier');
+        Database::connection()
+            ->prepare('UPDATE invoices SET payment_url_is_generated = 1 WHERE id = ?')
+            ->execute([$invoiceId]);
+
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_NEVER);
+
+        // Otherwise turning the feature off would only affect invoices that had
+        // not been chased yet, which is not what "off" means.
+        self::assertNull(
+            (new PaymentLinkService())->linkFor($this->tenantId, Invoice::find($this->tenantId, $invoiceId))
+        );
+    }
+
+    // ---------------------------------- self-check: the per-invoice override
+
+    public function testInvoiceNoneSuppressesTheButtonInAnAlwaysWorkspace(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_ALWAYS);
+
+        $invoiceId = $this->invoice('INV-OPTOUT', 18, null, null, PaymentLinkService::INVOICE_NONE);
+        $result = (new PaymentLinkService())->generate(
+            $this->tenantId,
+            Invoice::find($this->tenantId, $invoiceId)
+        );
+
+        self::assertFalse($result['ok']);
+        self::assertSame('invoice_none', $result['reason']);
+    }
+
+    public function testInvoiceGenerateWinsOverAManualOnlyWorkspace(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_MANUAL_ONLY);
+
+        // Decided locally: the Stripe key here is fake, so actually reaching the
+        // API would fail. Getting past the gate is what is being asserted.
+        $decision = PaymentLinkService::decide(
+            PaymentLinkService::WORKSPACE_MANUAL_ONLY,
+            PaymentLinkService::INVOICE_GENERATE
+        );
+
+        self::assertTrue($decision['generate']);
+        self::assertSame('invoice_generate', $decision['reason']);
+
+        $invoiceId = $this->invoice('INV-FORCED', 18, null, null, PaymentLinkService::INVOICE_GENERATE);
+        $plan = (new PaymentLinkService())->plan($this->tenantId, Invoice::find($this->tenantId, $invoiceId));
+
+        self::assertTrue($plan['will_send']);
+        self::assertSame('pending', $plan['kind']);
+    }
+
+    public function testNeverBeatsAnInvoiceAskingForALink(): void
+    {
+        // `never` means no pay button on any reminder. An invoice-level
+        // `generate` exists to escape `manual_only`, not to escape `never`.
+        $decision = PaymentLinkService::decide(
+            PaymentLinkService::WORKSPACE_NEVER,
+            PaymentLinkService::INVOICE_GENERATE
+        );
+
+        self::assertFalse($decision['generate']);
+        self::assertSame('workspace_never', $decision['reason']);
+    }
+
+    // ------------------------------ self-check: a pasted link beats them all
+
+    public function testAPastedLinkBeatsEveryModeAndEveryOverride(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+        $service = new PaymentLinkService();
+        $number = 0;
+
+        $overrides = [
+            null,
+            PaymentLinkService::INVOICE_DEFAULT,
+            PaymentLinkService::INVOICE_GENERATE,
+            PaymentLinkService::INVOICE_NONE,
+        ];
+
+        foreach (PaymentLinkService::WORKSPACE_MODES as $workspaceMode) {
+            $this->setWorkspaceMode($workspaceMode);
+
+            foreach ($overrides as $invoiceMode) {
+                $invoiceId = $this->invoice(
+                    'INV-PASTED-' . (++$number),
+                    18,
+                    'https://pay.me/mine-' . $number,
+                    null,
+                    $invoiceMode
+                );
+
+                self::assertSame(
+                    'https://pay.me/mine-' . $number,
+                    $service->linkFor($this->tenantId, Invoice::find($this->tenantId, $invoiceId)),
+                    'workspace=' . $workspaceMode . ' invoice=' . var_export($invoiceMode, true)
+                );
+            }
+        }
+    }
+
+    // ------------------------- self-check: the two settings are independent
+
+    public function testDisconnectingStripeLeavesTheModeAlone(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_MANUAL_ONLY);
+
+        (new ConnectService())->clearConnection($this->tenantId);
+
+        // Reconnecting should find the setting the user chose, not a silent
+        // reset to `always`.
+        self::assertSame(
+            PaymentLinkService::WORKSPACE_MANUAL_ONLY,
+            (new PaymentLinkService())->workspaceMode($this->tenantId)
+        );
+    }
+
+    public function testSettingModeToNeverLeavesStripeConnected(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+
+        self::assertTrue(
+            (new ConnectService())->setPaymentMode($this->tenantId, PaymentLinkService::WORKSPACE_NEVER)
+        );
+
+        // Pausing the buttons and revoking the OAuth grant were the same action
+        // before this column existed. They must not be.
+        $status = (new ConnectService())->status($this->tenantId);
+        self::assertTrue($status['connected']);
+        self::assertSame('acct_studio_ada', $status['account_id']);
+        self::assertSame(PaymentLinkService::WORKSPACE_NEVER, $status['payment_link_mode']);
+    }
+
+    public function testAnUnrecognisedModeIsRefusedRatherThanStored(): void
+    {
+        self::assertFalse((new ConnectService())->setPaymentMode($this->tenantId, 'sometimes'));
+        self::assertSame(
+            PaymentLinkService::WORKSPACE_ALWAYS,
+            (new PaymentLinkService())->workspaceMode($this->tenantId)
+        );
+    }
+
+    // ------------------- self-check: the SQL filters, not a loop afterwards
+
+    /**
+     * Asserted on the query, not on the outcome.
+     *
+     * Every row `ensurePaymentLinks()` selects costs a Stripe round trip, so an
+     * invoice that was never going to get a link must not be selected at all.
+     * Testing the outcome would pass just as happily with a filter after the
+     * query, which is exactly the implementation being ruled out.
+     */
+    public function testEnsurePaymentLinksNeverSelectsAnInvoiceThatWillNotGetALink(): void
+    {
+        $this->connectStripe('acct_studio_ada');
+
+        $followsDefault = $this->invoice('INV-Q-DEFAULT', 18, null);
+        $optedOut = $this->invoice('INV-Q-NONE', 18, null, null, PaymentLinkService::INVOICE_NONE);
+        $forced = $this->invoice('INV-Q-GENERATE', 18, null, null, PaymentLinkService::INVOICE_GENERATE);
+
+        foreach ([$followsDefault, $optedOut, $forced] as $invoiceId) {
+            $this->startChase($invoiceId);
+        }
+
+        // always: everything except the invoice that opted out.
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_ALWAYS);
+        $selected = $this->selectedForGeneration();
+        self::assertContains($followsDefault, $selected);
+        self::assertContains($forced, $selected);
+        self::assertNotContains($optedOut, $selected, 'An invoice set to `none` was queued for a Stripe call.');
+
+        // manual_only: only the invoice that explicitly asked.
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_MANUAL_ONLY);
+        $selected = $this->selectedForGeneration();
+        self::assertSame([$forced], $selected);
+
+        // never: nothing at all, including the invoice that asked.
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_NEVER);
+        self::assertSame([], $this->selectedForGeneration());
+    }
+
+    public function testTheQueryAndTheDecisionFunctionAgree(): void
+    {
+        // Two implementations of one rule -- the SQL and decide() -- drift the
+        // moment somebody edits one. This walks every combination through both.
+        $this->connectStripe('acct_studio_ada');
+
+        $overrides = [null, PaymentLinkService::INVOICE_GENERATE, PaymentLinkService::INVOICE_NONE];
+        $number = 0;
+        $invoices = [];
+
+        foreach ($overrides as $override) {
+            $id = $this->invoice('INV-AGREE-' . (++$number), 18, null, null, $override);
+            $this->startChase($id);
+            $invoices[$id] = $override;
+        }
+
+        foreach (PaymentLinkService::WORKSPACE_MODES as $workspaceMode) {
+            $this->setWorkspaceMode($workspaceMode);
+            $selected = $this->selectedForGeneration();
+
+            foreach ($invoices as $id => $override) {
+                $decision = PaymentLinkService::decide($workspaceMode, $override);
+
+                self::assertSame(
+                    $decision['generate'],
+                    in_array($id, $selected, true),
+                    'SQL and decide() disagree for workspace=' . $workspaceMode
+                        . ' invoice=' . var_export($override, true)
+                );
+            }
+        }
+    }
+
+    /**
+     * Run the private pre-pass query and report which invoice ids it picked.
+     */
+    private function selectedForGeneration(): array
+    {
+        // A stand-in for the links service that records what it was handed and
+        // makes no Stripe call. What is under test is which rows the query
+        // returned, so the generation step itself must not be involved.
+        $spy = new class () extends PaymentLinkService {
+            /** @var int[] */
+            public array $seen = [];
+
+            public function generate(int $tenantId, array $invoice): array
+            {
+                $this->seen[] = (int) $invoice['id'];
+
+                return ['ok' => false, 'url' => null, 'error' => null, 'reason' => 'spy'];
+            }
+        };
+
+        $sender = new \Keel\App\Services\ChaseSender(
+            new \Tests\Support\RecordingTransport(),
+            new \Keel\App\Services\TemplateRenderer(),
+            new \Keel\App\Services\ChaseScheduler(),
+            new \Keel\App\Services\SendRateLimiter(),
+            $spy
+        );
+
+        $method = (new \ReflectionClass(\Keel\App\Services\ChaseSender::class))
+            ->getMethod('ensurePaymentLinks');
+        $method->setAccessible(true);
+        $method->invoke($sender, $this->tenantId, $this->now);
+
+        $seen = $spy->seen;
+        sort($seen);
+
+        return $seen;
+    }
+
+    // ------------------------------- self-check: the pages say what is true
+
+    public function testTheSettingsPageOffersThreeRadiosNotACheckbox(): void
+    {
+        $this->signInAsAda();
+        $this->connectStripe('acct_studio_ada');
+
+        $body = $this->get('/settings/payments')->body;
+
+        // Three states, and the middle one is the interesting one. A checkbox
+        // cannot say "keep Stripe connected but decide per invoice".
+        foreach (PaymentLinkService::WORKSPACE_MODES as $mode) {
+            self::assertStringContainsString(
+                'name="payment_link_mode" value="' . $mode . '"',
+                $body,
+                'No radio for ' . $mode . '.'
+            );
+        }
+
+        self::assertStringNotContainsString('type="checkbox" name="payment_link_mode"', $body);
+    }
+
+    public function testAWorkspaceWithPayButtonsOffReadsAsASettingNotAFault(): void
+    {
+        $this->signInAsAda();
+        $this->connectStripe('acct_studio_ada');
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_NEVER);
+
+        $body = $this->get('/settings/payments')->body;
+
+        self::assertStringContainsString('because that is what you asked for', $body);
+        self::assertStringContainsString('Pay buttons off', $body);
+        // And it must not borrow the vocabulary of a broken connection.
+        self::assertStringNotContainsString('not letting this account take payments yet', $body);
+    }
+
+    public function testManualOnlySaysSoRatherThanLookingLikeNothingIsHappening(): void
+    {
+        $this->signInAsAda();
+        $this->connectStripe('acct_studio_ada');
+        $this->setWorkspaceMode(PaymentLinkService::WORKSPACE_MANUAL_ONLY);
+
+        $body = $this->get('/settings/payments')->body;
+
+        self::assertStringContainsString('not generating links on its own', $body);
+        self::assertStringContainsString('Your links only', $body);
+    }
+
+    public function testConnectingLandsOnTheChoiceScreenRatherThanSilentlySwitchingOn(): void
+    {
+        $this->signInAsAda();
+        $this->connectStripe('acct_studio_ada');
+
+        $body = $this->get('/settings/payments/choose')->body;
+
+        self::assertStringContainsString('What happens next', $body);
+        self::assertStringContainsString('a button your client can', $body);
+        // The fee position, where somebody deciding will actually read it.
+        self::assertStringContainsString('adds nothing on top of Stripe', $body);
+
+        foreach (PaymentLinkService::WORKSPACE_MODES as $mode) {
+            self::assertStringContainsString('value="' . $mode . '"', $body);
+        }
+
+        // And it does not block: the column already holds the default the page
+        // describes, so leaving is a valid answer rather than an undefined state.
+        self::assertStringContainsString('Leave it as it is', $body);
+        self::assertSame(
+            PaymentLinkService::WORKSPACE_ALWAYS,
+            (new PaymentLinkService())->workspaceMode($this->tenantId)
+        );
+    }
+
+    public function testTheInvoicePageStatesWhetherTheNextReminderCarriesAPayButton(): void
+    {
+        $this->signInAsAda();
+        $this->connectStripe('acct_studio_ada');
+
+        $withOwnLink = $this->invoice('INV-SHOW-MANUAL', 18, 'https://pay.me/mine');
+        $this->startChase($withOwnLink);
+
+        $body = $this->get('/invoices/' . $withOwnLink . '/timeline')->body;
+
+        self::assertStringContainsString('Carries your own payment link', $body);
+        self::assertStringContainsString('https://pay.me/mine', $body);
+
+        $optedOut = $this->invoice('INV-SHOW-NONE', 18, null, null, PaymentLinkService::INVOICE_NONE);
+        $this->startChase($optedOut);
+
+        $body = $this->get('/invoices/' . $optedOut . '/timeline')->body;
+
+        // Said in the user's terms, not as a reason code.
+        self::assertStringContainsString('you turned it off for this invoice', $body);
+    }
+
     // ----------------------------- self-check 10: Standard, and only Standard
 
     public function testNoCodePathCreatesAnExpressOrCustomAccountOrTakesAFee(): void
@@ -585,8 +1006,20 @@ class ConnectPaymentsFeatureTest extends TestCase
         return (int) $start['chase_id'];
     }
 
-    private function invoice(string $number, int $daysOverdue, ?string $paymentUrl, ?int $tenantId = null): int
+    private function setWorkspaceMode(string $mode): void
     {
+        Database::connection()
+            ->prepare('UPDATE organizations SET payment_link_mode = ? WHERE id = ?')
+            ->execute([$mode, $this->tenantId]);
+    }
+
+    private function invoice(
+        string $number,
+        int $daysOverdue,
+        ?string $paymentUrl,
+        ?int $tenantId = null,
+        ?string $linkMode = null
+    ): int {
         $tenantId ??= $this->tenantId;
 
         $clientId = Client::findOrCreate($tenantId, 'dana+' . $tenantId . '@client.test', [
@@ -602,6 +1035,7 @@ class ConnectPaymentsFeatureTest extends TestCase
             'currency' => 'USD',
             'due_date' => $this->now->modify('-' . $daysOverdue . ' days')->format('Y-m-d'),
             'payment_url' => $paymentUrl,
+            'payment_link_mode' => $linkMode,
         ]);
     }
 

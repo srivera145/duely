@@ -45,7 +45,8 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
             <p class="mx-auto mt-2 max-w-xl text-sm text-text-muted">
                 <?= $progress['complete']
                     ? 'Duely is chasing your overdue invoices. You can close this page.'
-                    : 'Four steps and Duely starts following up for you. You can stop and come back at any point.' ?>
+                    : (count(array_filter($progress['steps'], static fn (array $s): bool => $s['required']))
+                        . ' steps and Duely starts following up for you. You can stop and come back at any point.') ?>
             </p>
         </div>
 
@@ -111,6 +112,11 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                         <div>
                             <p class="font-medium <?= $step['done'] ? 'text-text-muted' : 'text-text-strong' ?>">
                                 <?= $e($step['title']) ?>
+                                <?php if (!empty($step['optional'])): ?>
+                                <span class="ml-2 rounded-full border border-card-border px-2 py-0.5 text-xs font-normal text-text-muted">
+                                    Optional
+                                </span>
+                                <?php endif; ?>
                             </p>
                             <p class="mt-1 text-sm text-text-muted"><?= $e($step['blurb']) ?></p>
                         </div>
@@ -120,6 +126,10 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                         <?php if ($step['done']): ?>
                         <span class="text-xs text-success-text">Done</span>
                         <?php else: ?>
+                        <?php if (!empty($step['optional'])): ?>
+                        <button type="button" id="dismiss-payment"
+                                class="text-xs text-text-muted hover:text-text-strong">No thanks</button>
+                        <?php endif; ?>
                         <a href="<?= $e($step['href']) ?>"
                            class="btn btn-sm <?= $step['is_current'] ? 'btn-primary' : 'btn-secondary border border-card-border' ?>">
                             <?= $e($step['action']) ?>

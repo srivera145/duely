@@ -17,6 +17,26 @@ $charges = (bool) $status['charges_enabled'];
 $payouts = (bool) $status['payouts_enabled'];
 $ready = $connected && $charges;
 
+// The workspace default, which is a separate thing from being connected. A
+// workspace can be connected and set to `never`; that is not a fault, and the
+// page must not read like one.
+$mode = (string) ($status['payment_link_mode'] ?? 'always');
+
+$modeOptions = [
+    'always' => [
+        'label' => 'Add a pay button to every reminder',
+        'hint' => 'Any open invoice without a payment link of its own gets one.',
+    ],
+    'manual_only' => [
+        'label' => 'Only on invoices I choose',
+        'hint' => 'Duely makes no links by itself. Switch it on per invoice instead.',
+    ],
+    'never' => [
+        'label' => 'No Duely pay buttons',
+        'hint' => 'Nothing generated for any reminder. A link you paste yourself still goes out — that one is yours.',
+    ],
+];
+
 $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 
 $notices = [
@@ -24,6 +44,9 @@ $notices = [
     'cancelled' => 'Nothing was linked. You can start again whenever you like.',
     'disconnected' => 'Your Stripe account has been unlinked and Duely\'s access revoked.',
     'disconnected_unconfirmed' => 'Unlinked here, but Stripe did not confirm it. Check Connected apps in your Stripe dashboard.',
+    'mode_always' => 'Reminders will carry a pay button.',
+    'mode_manual_only' => 'Duely will only use payment links you add yourself.',
+    'mode_never' => 'Duely pay buttons are off. Stripe is still connected, and links you paste yourself still go out.',
 ];
 
 $errors = [
@@ -94,6 +117,18 @@ require __DIR__ . '/../partials/app-nav.php';
             <p class="mt-4 text-xs text-text-muted">
                 You will sign in to Stripe and choose which account to link. Nothing is connected until you do.
             </p>
+
+            <?php if ($mode !== 'always'): ?>
+            <!--
+                The setting outlives the connection, so a user who disconnects
+                and comes back does not get a surprise when they reconnect.
+            -->
+            <p class="mt-4 rounded-lg border border-card-border bg-surface-muted p-3 text-xs text-text-muted">
+                Your saved preference is
+                <strong class="text-text"><?= $e($modeOptions[$mode]['label']) ?></strong>.
+                It will still apply if you connect Stripe again.
+            </p>
+            <?php endif; ?>
         </section>
 
         <section class="mt-6 rounded-xl border border-card-border bg-card p-6">
@@ -118,10 +153,19 @@ require __DIR__ . '/../partials/app-nav.php';
                         <?php endif; ?>
                     </p>
                 </div>
-                <span class="shrink-0 rounded-full border px-3 py-1 text-xs font-semibold <?= $ready
-                    ? 'border-success-border bg-success-soft text-success-text'
-                    : 'border-amber-500/30 bg-amber-500/10 text-amber-400' ?>">
-                    <?= $ready ? 'Taking payments' : 'Not taking payments yet' ?>
+                <?php
+                // Three states, not two. A workspace that is connected and set
+                // to `never` is working exactly as asked, and a warning badge
+                // would read as a fault.
+                [$badgeClass, $badgeLabel] = match (true) {
+                    !$charges => ['border-amber-500/30 bg-amber-500/10 text-amber-400', 'Not taking payments yet'],
+                    $mode === 'never' => ['border-card-border bg-surface-muted text-text-muted', 'Pay buttons off'],
+                    $mode === 'manual_only' => ['border-card-border bg-surface-muted text-text-muted', 'Your links only'],
+                    default => ['border-success-border bg-success-soft text-success-text', 'Taking payments'],
+                };
+                ?>
+                <span class="shrink-0 rounded-full border px-3 py-1 text-xs font-semibold <?= $badgeClass ?>">
+                    <?= $badgeLabel ?>
                 </span>
             </div>
 
@@ -150,9 +194,27 @@ require __DIR__ . '/../partials/app-nav.php';
                     and Stripe; Duely cannot see why.
                 </p>
             </div>
+            <?php elseif ($mode === 'never'): ?>
+            <!-- Off because the user said so. Stated as a setting, not a problem. -->
+            <p class="mt-5 text-sm leading-relaxed text-text-muted">
+                Duely is not putting pay buttons on your reminders, because that is what you asked for below.
+                Stripe stays connected, so you can turn this back on without reconnecting anything.
+            </p>
+            <p class="mt-3 text-sm leading-relaxed text-text-muted">
+                Payment links you paste onto an invoice yourself still go out. That URL is yours, and this
+                setting does not touch it.
+            </p>
+            <?php elseif ($mode === 'manual_only'): ?>
+            <p class="mt-5 text-sm leading-relaxed text-text-muted">
+                Duely is not generating links on its own. Reminders carry a pay button only on invoices where
+                you have asked for one, or where you pasted your own link.
+            </p>
+            <p class="mt-3 text-sm leading-relaxed text-text-muted">
+                When a client pays in full, Duely marks the invoice paid and stops chasing it.
+            </p>
             <?php else: ?>
             <p class="mt-5 text-sm leading-relaxed text-text-muted">
-                Reminders for open invoices now carry a pay button. When a client pays in full, Duely marks the
+                Reminders for open invoices carry a pay button. When a client pays in full, Duely marks the
                 invoice paid and stops chasing it. If they pay part of it, the invoice stays open and you get an
                 email &mdash; Duely will not guess whether the rest is coming.
             </p>
@@ -160,6 +222,38 @@ require __DIR__ . '/../partials/app-nav.php';
                 Invoices where you pasted your own link keep using your link. Duely never replaces it.
             </p>
             <?php endif; ?>
+
+            <!--
+                Radios, not a checkbox. There are three states and the middle one
+                is the interesting one -- keep Stripe connected, but decide per
+                invoice -- and a checkbox cannot say it.
+            -->
+            <form method="post" action="/settings/payments/mode" class="mt-6 border-t border-card-border pt-6">
+                <?= \Keel\Core\Csrf::field() ?>
+                <fieldset>
+                    <legend class="text-sm font-semibold text-text-strong">When should Duely add a pay button?</legend>
+                    <p class="mt-1 text-sm text-text-muted">
+                        This governs links Duely creates. A payment link you paste onto an invoice is your own,
+                        and none of these settings suppress it.
+                    </p>
+
+                    <div class="mt-4 space-y-3">
+                        <?php foreach ($modeOptions as $value => $option): ?>
+                        <label class="flex cursor-pointer gap-3 rounded-lg border border-card-border p-4 transition hover:border-brand">
+                            <input type="radio" name="payment_link_mode" value="<?= $e($value) ?>"
+                                   class="mt-1 shrink-0 accent-brand"
+                                   <?= $mode === $value ? 'checked' : '' ?>>
+                            <span>
+                                <span class="block text-sm font-medium text-text-strong"><?= $e($option['label']) ?></span>
+                                <span class="mt-1 block text-sm text-text-muted"><?= $e($option['hint']) ?></span>
+                            </span>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary mt-4">Save</button>
+                </fieldset>
+            </form>
 
             <div class="mt-6 flex flex-wrap items-center gap-3">
                 <button type="button" id="recheck-button" class="btn">Recheck with Stripe</button>

@@ -41,7 +41,7 @@ class ConnectService
     /**
      * What this workspace's connection looks like.
      *
-     * @return array{connected:bool, account_id:?string, charges_enabled:bool, payouts_enabled:bool, connected_at:?string, can_take_payments:bool}
+     * @return array{connected:bool, account_id:?string, charges_enabled:bool, payouts_enabled:bool, connected_at:?string, payment_link_mode:string, can_take_payments:bool}
      */
     public function status(int $tenantId): array
     {
@@ -57,6 +57,14 @@ class ConnectService
             'charges_enabled' => $charges,
             'payouts_enabled' => (bool) ($row['stripe_payouts_enabled'] ?? false),
             'connected_at' => $row['stripe_account_connected_at'] ?? null,
+            // The workspace default, read from its own column. A disconnected
+            // workspace still has one, and keeps it -- which is the point of
+            // separating the two.
+            'payment_link_mode' => in_array(
+                $row['payment_link_mode'] ?? '',
+                PaymentLinkService::WORKSPACE_MODES,
+                true
+            ) ? (string) $row['payment_link_mode'] : PaymentLinkService::WORKSPACE_ALWAYS,
             // The only question the rest of the app should ask.
             'can_take_payments' => $connected && $charges,
         ];
@@ -254,6 +262,28 @@ class ConnectService
     }
 
     /**
+     * Set this workspace's pay-button default.
+     *
+     * Writes one column and nothing else. In particular it never touches
+     * `stripe_account_id`: choosing `never` is "stop putting buttons on
+     * reminders", not "revoke Duely's access to my Stripe account". Those were
+     * the same action before this column existed, and they should not be.
+     */
+    public function setPaymentMode(int $tenantId, string $mode): bool
+    {
+        if (!in_array($mode, PaymentLinkService::WORKSPACE_MODES, true)) {
+            return false;
+        }
+
+        $statement = Database::connection()->prepare(
+            'UPDATE organizations SET payment_link_mode = ? WHERE id = ?'
+        );
+        $statement->execute([$mode, $tenantId]);
+
+        return true;
+    }
+
+    /**
      * Forget the connection locally.
      *
      * Separate from disconnect() because Stripe can tell us the authorisation
@@ -263,6 +293,9 @@ class ConnectService
      */
     public function clearConnection(int $tenantId): void
     {
+        // `payment_link_mode` is deliberately absent from this UPDATE. A user
+        // who disconnects and reconnects should find the setting they chose,
+        // not a silent reset to `always`.
         $statement = Database::connection()->prepare(
             'UPDATE organizations
              SET stripe_account_id = NULL, stripe_charges_enabled = 0, stripe_payouts_enabled = 0,

@@ -148,7 +148,67 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
                         </select>
                         <p class="mt-1 text-xs text-text-muted">Marking an invoice paid stops its chase.</p>
                     </div>
-                    <div>
+                    <div class="sm:col-span-2">
+                        <?php
+                        // Four states in one control. The fourth -- "use a link
+                        // I paste" -- is selected by typing in the field below
+                        // rather than by a radio: making somebody set both would
+                        // be asking the same question twice, and the resolution
+                        // order already treats a pasted link as the answer.
+                        $manualUrl = !$isNew
+                            && !empty($invoice['payment_url'])
+                            && empty($invoice['payment_url_is_generated']);
+                        $linkMode = $isNew ? null : ($invoice['payment_link_mode'] ?? null);
+                        $workspaceMode = $workspacePaymentMode ?? 'always';
+
+                        $followsLabel = match ($workspaceMode) {
+                            'never' => 'no pay button',
+                            'manual_only' => 'only links you add yourself',
+                            default => 'add a pay button',
+                        };
+                        ?>
+                        <fieldset<?= $manualUrl ? ' disabled' : '' ?>>
+                            <legend class="block text-sm font-medium text-text">Pay button on reminders</legend>
+
+                            <div class="mt-2 space-y-2">
+                                <label class="flex cursor-pointer items-start gap-2 text-sm">
+                                    <input type="radio" name="payment_link_mode" value="default"
+                                           class="mt-0.5 shrink-0 accent-brand"
+                                           <?= $linkMode === null || $linkMode === 'default' ? 'checked' : '' ?>>
+                                    <span class="text-text-muted">
+                                        Follow the workspace default
+                                        <span class="text-text-muted">(<?= $e($followsLabel) ?>)</span>
+                                    </span>
+                                </label>
+
+                                <label class="flex cursor-pointer items-start gap-2 text-sm">
+                                    <input type="radio" name="payment_link_mode" value="generate"
+                                           class="mt-0.5 shrink-0 accent-brand"
+                                           <?= $linkMode === 'generate' ? 'checked' : '' ?>>
+                                    <span class="text-text-muted">Add a Duely pay button to this invoice</span>
+                                </label>
+
+                                <label class="flex cursor-pointer items-start gap-2 text-sm">
+                                    <input type="radio" name="payment_link_mode" value="none"
+                                           class="mt-0.5 shrink-0 accent-brand"
+                                           <?= $linkMode === 'none' ? 'checked' : '' ?>>
+                                    <span class="text-text-muted">
+                                        No pay button on this invoice
+                                        <span class="block text-xs">For a client paying by transfer, or an invoice already part paid.</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <?php if ($manualUrl): ?>
+                        <p class="mt-2 text-xs text-text-muted">
+                            You have pasted your own payment link below, so that is what goes out. Clear the
+                            field to choose one of these instead.
+                        </p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="sm:col-span-2">
                         <label for="payment_url" class="block text-sm font-medium text-text">Payment link</label>
                         <input type="url" id="payment_url" name="payment_url"
                                value="<?= $isNew ? '' : $e($invoice['payment_url']) ?>"
@@ -156,11 +216,9 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
                         <p class="mt-1 text-xs text-text-muted" data-error-for="payment_url">
                             <?php if (!$isNew && !empty($invoice['payment_url_is_generated'])): ?>
                             Duely made this one through Stripe. Type your own here and Duely will use yours instead.
-                            <?php elseif ($canTakePayments ?? false): ?>
-                            Included in reminders when set. Leave it empty and Duely adds a Stripe pay button
-                            when the first reminder goes out.
                             <?php else: ?>
-                            Included in reminders when set.
+                            Paste your own &mdash; PayPal, a bank page, anything &mdash; and Duely uses it
+                            instead of generating one. It overrides every setting above.
                             <?php endif; ?>
                         </p>
                     </div>
