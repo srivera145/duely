@@ -1,6 +1,18 @@
 @layer components {
+  /*
+   * `gap-1` is load-bearing, not decoration.
+   *
+   * A flex container throws away whitespace-only text between its items, so a
+   * button written as `Import <span>12</span> invoices` renders as
+   * "Import12invoices" -- the markup has the spaces, and inline-flex discards
+   * them. The gap puts that spacing back for every button, rather than leaving
+   * it as a trap the next person writing a label falls into.
+   *
+   * It has no effect on a button whose label is a single text node, which is
+   * almost all of them: one item means no gaps to apply.
+   */
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition;
+    @apply inline-flex items-center justify-center gap-1 rounded-lg px-4 py-2 text-sm font-semibold transition;
   }
 
   .btn-sm {

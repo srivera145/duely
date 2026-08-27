@@ -14,7 +14,7 @@
 ?>
 <form method="post" action="/logout" class="contents">
     <?= \Keel\Core\Csrf::field() ?>
-    <button type="submit" class="text-sm text-text-muted transition hover:text-text-strong">
+    <button type="submit" class="whitespace-nowrap text-sm text-text-muted transition hover:text-text-strong">
         Sign out
     </button>
 </form>

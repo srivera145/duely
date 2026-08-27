@@ -2,12 +2,10 @@
 
 namespace Keel\App\Middleware;
 
-use Keel\App\Services\ImpersonationService;
-use Keel\Core\Database;
+use Keel\App\Support\Operator;
 use Keel\Core\Middleware;
 use Keel\Core\Request;
 use Keel\Core\Response;
-use Keel\Core\Session;
 
 /**
  * The door to the operator panel.
@@ -33,28 +31,14 @@ class RequireSuperAdminMiddleware implements Middleware
 {
     public function handle(Request $request, \Closure $next): mixed
     {
-        // Checked first. An impersonated session belongs to the customer for the
-        // duration, whatever the operator behind it is entitled to elsewhere.
-        if ((new ImpersonationService())->isActive()) {
-            $this->refuse($request);
-        }
-
-        // The real operator, not the impersonated identity -- though the check
-        // above means they are the same here. Read straight from the session
-        // rather than through Auth::id(), which impersonation rewrites.
-        $userId = (int) Session::get('user_id', 0);
-
-        if ($userId <= 0) {
-            $this->refuse($request);
-        }
-
-        $statement = Database::connection()->prepare(
-            'SELECT is_super_admin FROM users WHERE id = ? LIMIT 1'
-        );
-        $statement->execute([$userId]);
-        $row = $statement->fetch();
-
-        if (!$row || (int) $row['is_super_admin'] !== 1) {
+        // The same call the navigation uses to decide whether to show a link
+        // here. One answer in one place: a visible link this door refuses is a
+        // bug report, and the two drifting apart is how that happens.
+        //
+        // Operator::isCurrent() re-reads is_super_admin from the database and
+        // returns false inside an impersonated session; both of those matter
+        // and neither is the session's word for it.
+        if (!Operator::isCurrent()) {
             $this->refuse($request);
         }
 

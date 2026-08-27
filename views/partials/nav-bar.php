@@ -47,6 +47,22 @@ $navSections = [
     ],
 ];
 
+/**
+ * The operator panel, for the one person who has it.
+ *
+ * Deliberately not a member of $navSections: it is not a product destination
+ * and must never render for an ordinary user, so it is a separate branch rather
+ * than an entry somebody could accidentally make unconditional.
+ *
+ * Operator::isCurrent() is the same call the panel's own middleware makes — it
+ * re-reads is_super_admin from the database rather than trusting the session,
+ * and returns false inside an impersonated session. So a revoked operator loses
+ * the link on their next page load, and a support session never shows a way
+ * back into the panel it is blocked from.
+ */
+$navIsOperator = \Keel\App\Support\Operator::isCurrent();
+$navOperatorHref = \Keel\App\Support\Operator::panelHref();
+
 // The path only. A query string must not change which link is lit, or
 // /invoices?status=open would look like a different section from /invoices.
 $navPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
@@ -62,7 +78,7 @@ $navIsActive = static function (string $href) use ($navPath): bool {
 };
 
 $navLinkClass = static function (bool $active): string {
-    return 'rounded-md px-2 py-1 text-sm transition '
+    return 'whitespace-nowrap rounded-md px-2 py-1 text-sm transition '
         // Colour alone would leave this invisible to anyone who cannot see it,
         // which is why every active link also carries aria-current="page".
         //
@@ -76,7 +92,7 @@ $navLinkClass = static function (bool $active): string {
         . ' focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand';
 };
 ?>
-<div class="mb-6 border-b border-card-border pb-4">
+<div class="mb-6 border-b border-card-border pb-4 md:pr-12">
     <div class="flex items-center justify-between gap-4">
         <?php if (!$navCompact): ?>
         <?php
@@ -91,7 +107,7 @@ $navLinkClass = static function (bool $active): string {
         <?php endif; ?>
 
         <!-- Desktop. Below md this is replaced by the disclosure underneath. -->
-        <nav aria-label="Main" class="hidden items-center gap-1 md:flex">
+        <nav aria-label="Main" class="hidden flex-wrap items-center justify-end gap-1 md:flex">
             <?php foreach ($navSections['product'] as $label => $href): ?>
             <?php $active = $navIsActive($href); ?>
             <a href="<?= $href ?>"
@@ -107,6 +123,16 @@ $navLinkClass = static function (bool $active): string {
                class="<?= $navLinkClass($active) ?>"
                <?= $active ? 'aria-current="page"' : '' ?>><?= $label ?></a>
             <?php endforeach; ?>
+
+            <?php if ($navIsOperator): ?>
+            <span class="mx-2 h-4 w-px bg-card-border" aria-hidden="true"></span>
+            <?php $active = $navIsActive($navOperatorHref); ?>
+            <a href="<?= $navOperatorHref ?>"
+               class="whitespace-nowrap rounded-md px-2 py-1 text-xs font-bold uppercase tracking-wide transition <?= $active
+                   ? 'bg-danger-soft text-danger-text'
+                   : 'text-danger-text hover:bg-danger-soft' ?> focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+               <?= $active ? 'aria-current="page"' : '' ?>>Operator</a>
+            <?php endif; ?>
 
             <span class="mx-2 h-4 w-px bg-card-border" aria-hidden="true"></span>
 
@@ -143,6 +169,16 @@ $navLinkClass = static function (bool $active): string {
                    <?= $active ? 'aria-current="page"' : '' ?>><?= $label ?></a>
                 <?php endforeach; ?>
 
+                <?php if ($navIsOperator): ?>
+                <span class="my-1 h-px w-full bg-card-border" aria-hidden="true"></span>
+                <?php $active = $navIsActive($navOperatorHref); ?>
+                <a href="<?= $navOperatorHref ?>"
+                   class="w-full whitespace-nowrap rounded-md px-2 py-1 text-xs font-bold uppercase tracking-wide transition <?= $active
+                       ? 'bg-danger-soft text-danger-text'
+                       : 'text-danger-text hover:bg-danger-soft' ?> focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                   <?= $active ? 'aria-current="page"' : '' ?>>Operator</a>
+                <?php endif; ?>
+
                 <span class="my-1 h-px w-full bg-card-border" aria-hidden="true"></span>
 
                 <?php require __DIR__ . '/sign-out.php'; ?>
@@ -153,4 +189,5 @@ $navLinkClass = static function (bool $active): string {
 <?php
 // The enclosing scope is shared with the calling view, and $link in particular
 // collides with a foreach variable in views/docs/_layout.php.
-unset($navCompact, $navSections, $navPath, $navIsActive, $navLinkClass, $active);
+unset($navCompact, $navSections, $navPath, $navIsActive, $navLinkClass, $active,
+    $navIsOperator, $navOperatorHref);

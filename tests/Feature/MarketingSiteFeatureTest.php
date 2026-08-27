@@ -119,6 +119,38 @@ class MarketingSiteFeatureTest extends TestCase
         );
     }
 
+    public function testButtonLabelsWithInlineMarkupKeepTheirSpaces(): void
+    {
+        // `.btn` is inline-flex, and a flex container discards whitespace-only
+        // text between its items. So `Import <span>12</span> invoices` rendered
+        // as "Import12invoices" -- the markup had the spaces and the layout
+        // threw them away. The gap puts them back.
+        //
+        // Asserted against the compiled CSS rather than the source, because the
+        // source is @apply and what ships is what matters.
+        $stylesheets = glob(dirname(__DIR__, 2) . '/public_html/assets/assets/*.css') ?: [];
+
+        if ($stylesheets === []) {
+            self::markTestSkipped('No built stylesheet; run npm run build.');
+        }
+
+        $found = false;
+
+        foreach ($stylesheets as $stylesheet) {
+            if (preg_match('/\.btn\{[^}]*\}/', (string) file_get_contents($stylesheet), $matches) === 1) {
+                $found = true;
+
+                self::assertStringContainsString(
+                    'gap:',
+                    $matches[0],
+                    '.btn is a flex container with no gap, so any label mixing text and markup loses its spaces.'
+                );
+            }
+        }
+
+        self::assertTrue($found, '.btn was not found in the compiled CSS.');
+    }
+
     public function testTheStructuredDataDescribesWhatIsActuallyOnThePage(): void
     {
         $body = $this->get('/')->body;

@@ -18,6 +18,7 @@ use Keel\App\Services\ImpersonationService;
 use Keel\App\Services\PlanService;
 use Keel\App\Services\SupportAccessLog;
 use Keel\App\Services\TenantContext;
+use Keel\App\Support\Operator;
 use Keel\Core\Auth;
 use Keel\Core\Database;
 use Keel\Core\Session;
@@ -213,6 +214,86 @@ class SuperAdminFeatureTest extends TestCase
 
         self::assertSame(200, $response->status, 'The customer has no page to read this on.');
         self::assertStringContainsString('support.', $response->body);
+    }
+
+    // ---------------- self-check: the operator link is only for the operator
+
+    public function testTheOperatorLinkAppearsInTheNavForAnOperator(): void
+    {
+        $this->signInAsOperator();
+
+        $body = $this->get('/dashboard')->body;
+
+        self::assertStringContainsString('href="/super-admin"', $body, 'The operator has no way in.');
+        self::assertStringContainsString('>Operator</a>', $body);
+    }
+
+    public function testAnOrdinaryUserNeverSeesTheOperatorLink(): void
+    {
+        $this->signInAsCustomer();
+
+        // Every page carrying the nav, not just one: a link that leaks on the
+        // invoice list and not the dashboard is still a leak.
+        foreach (['/dashboard', '/invoices', '/clients', '/sequences', '/settings/email'] as $path) {
+            $body = $this->get($path)->body;
+
+            self::assertStringNotContainsString('/super-admin', $body, $path . ' leaked the panel.');
+            self::assertStringNotContainsString('>Operator</a>', $body, $path . ' leaked the panel.');
+        }
+    }
+
+    public function testRevokingSuperAdminRemovesTheLinkOnTheNextPageLoad(): void
+    {
+        $this->signInAsOperator();
+        self::assertStringContainsString('href="/super-admin"', $this->get('/dashboard')->body);
+
+        Database::connection()
+            ->prepare('UPDATE users SET is_super_admin = 0 WHERE id = ?')
+            ->execute([$this->adminId]);
+
+        // Same session, next request. The nav reads the database for the same
+        // reason the middleware does: a revocation that waits for the user to
+        // log out is a request, not a revocation.
+        self::assertStringNotContainsString(
+            'href="/super-admin"',
+            $this->get('/dashboard')->body,
+            'A revoked operator kept the link.'
+        );
+    }
+
+    public function testAnImpersonatedSessionShowsNoWayBackIntoThePanel(): void
+    {
+        $this->startImpersonation();
+
+        $body = $this->get('/dashboard')->body;
+
+        // The panel refuses this session anyway, so the link would be a dead
+        // end -- and an offer of an escalation path back out is worse than a
+        // dead end.
+        self::assertStringNotContainsString('href="/super-admin"', $body);
+        self::assertStringNotContainsString('>Operator</a>', $body);
+
+        // The banner is the only operator-ish thing on the page, and it leads
+        // out of the session rather than into the panel.
+        self::assertStringContainsString('/impersonation/stop', $body);
+    }
+
+    public function testTheNavAndTheDoorAgree(): void
+    {
+        // The failure this rules out: a visible link the panel refuses, or a
+        // hidden link on a door that opens. They are the same call now, and
+        // this asserts they stay that way.
+        $this->signInAsCustomer();
+        self::assertFalse(Operator::isCurrent());
+        self::assertSame(404, $this->get('/super-admin')->status);
+
+        $this->signInAsOperator();
+        self::assertTrue(Operator::isCurrent());
+        self::assertSame(200, $this->get('/super-admin')->status);
+
+        $this->startImpersonation();
+        self::assertFalse(Operator::isCurrent());
+        self::assertNotSame(200, $this->get('/super-admin')->status);
     }
 
     // ------------------------ self-check: credentials are never decrypted
