@@ -43,7 +43,6 @@ $pageEyebrow = 'Settings';
 $pageSubtitle = '<p class="mt-2 max-w-xl text-sm text-text-muted">'
     . 'Let a client pay an invoice straight from the reminder, into your own Stripe account.'
     . '</p>';
-$pageActions = '<a href="/dashboard" class="text-sm text-text-muted hover:text-text-strong">Back to dashboard</a>';
 require __DIR__ . '/../partials/app-nav.php';
 ?>
 

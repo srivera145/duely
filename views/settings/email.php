@@ -47,20 +47,19 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-4xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Settings</p>
-                <h1 class="text-3xl font-bold text-text-strong">Email account</h1>
+        <?php
+        ob_start(); ?>
                 <p class="mt-2 max-w-xl text-sm text-text-muted">
                     Reminders go out from your address, not ours, so replies land in your inbox and your client
                     sees a normal email from you.
                 </p>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a href="/dashboard" class="text-sm text-text-muted hover:text-text-strong">Back to dashboard</a>
-                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
-            </div>
-        </div>
+        <?php $pageSubtitle = ob_get_clean();
+        $pageEyebrow = 'Settings';
+        $pageTitle = 'Email account';
+        // No "Back to dashboard": the nav carries it, on every page, in the
+        // same place.
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <!-- What to do once the mailbox is connected. -->
         <?php if ($connected && $nextStep !== null): ?>

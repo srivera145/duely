@@ -7,18 +7,14 @@ $pendingInvites = $pendingInvites ?? [];
 <head>
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-5xl px-4 py-10">
-        <div class="mb-8 flex items-center justify-between gap-4">
-            <div>
-                <p class="text-sm text-gray-500">Organization members</p>
-                <h1 class="text-3xl font-bold text-gray-900"><?= htmlspecialchars((string) ($organization['name'] ?? 'Organization')) ?></h1>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a href="/settings/organization" class="text-sm text-gray-500 hover:text-gray-900">Organization settings</a>
-                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
-            </div>
-        </div>
+        <?php
+        $pageActions = '<a href="/settings/organization" class="text-sm text-text-muted hover:text-text-strong">Organization settings</a>';
+        $pageEyebrow = 'Organization members';
+        $pageTitle = htmlspecialchars((string) ($organization['name'] ?? 'Organization'));
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <?php if (!empty($_GET['status']) && $_GET['status'] === 'invite_sent'): ?>
         <div class="alert alert-success mb-6 px-4 py-3">Invite sent.</div>
@@ -30,8 +26,8 @@ $pendingInvites = $pendingInvites ?? [];
 
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
             <div class="card">
-                <h2 class="text-lg font-semibold text-gray-900">Team members</h2>
-                <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+                <h2 class="text-lg font-semibold text-text-strong">Team members</h2>
+                <div class="mt-4 overflow-x-auto rounded-xl border border-card-border">
                     <table class="table">
                         <thead>
                             <tr>
@@ -55,13 +51,13 @@ $pendingInvites = $pendingInvites ?? [];
 
                             <?php foreach ($members as $member): ?>
                             <tr>
-                                <td class="font-medium text-gray-900"><?= htmlspecialchars((string) $member['email']) ?></td>
+                                <td class="font-medium text-text-strong"><?= htmlspecialchars((string) $member['email']) ?></td>
                                 <td class="uppercase tracking-wide"><?= htmlspecialchars((string) $member['role']) ?></td>
                                 <td>
                                     <?php if ((int) ($member['is_super_admin'] ?? 0) === 1): ?>
                                     <span class="badge badge-neutral">Super admin</span>
                                     <?php else: ?>
-                                    <span class="text-xs text-gray-500">Member</span>
+                                    <span class="text-xs text-text-muted">Member</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>
@@ -73,7 +69,7 @@ $pendingInvites = $pendingInvites ?? [];
 
             <div class="space-y-6">
                 <div class="card">
-                    <h2 class="text-lg font-semibold text-gray-900">Invite teammate</h2>
+                    <h2 class="text-lg font-semibold text-text-strong">Invite teammate</h2>
                     <form method="POST" action="/settings/members/invite" class="mt-4 space-y-4">
                         <?= \Keel\Core\Csrf::field() ?>
                         <div>
@@ -92,8 +88,8 @@ $pendingInvites = $pendingInvites ?? [];
                 </div>
 
                 <div class="card">
-                    <h2 class="text-lg font-semibold text-gray-900">Pending invites</h2>
-                    <div class="mt-4 overflow-x-auto rounded-xl border border-gray-200">
+                    <h2 class="text-lg font-semibold text-text-strong">Pending invites</h2>
+                    <div class="mt-4 overflow-x-auto rounded-xl border border-card-border">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -117,7 +113,7 @@ $pendingInvites = $pendingInvites ?? [];
 
                                 <?php foreach ($pendingInvites as $invite): ?>
                                 <tr>
-                                    <td class="font-medium text-gray-900"><?= htmlspecialchars((string) $invite['email']) ?></td>
+                                    <td class="font-medium text-text-strong"><?= htmlspecialchars((string) $invite['email']) ?></td>
                                     <td class="uppercase tracking-wide"><?= htmlspecialchars((string) $invite['role']) ?></td>
                                     <td>Expires <?= htmlspecialchars((string) $invite['expires_at']) ?></td>
                                 </tr>

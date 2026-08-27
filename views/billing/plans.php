@@ -44,16 +44,11 @@ $blurbs = [
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-5xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Billing</p>
-                <h1 class="text-3xl font-bold text-text-strong">Plans</h1>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a href="/dashboard" class="text-sm text-text-muted hover:underline">Back to the dashboard</a>
-                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
-            </div>
-        </div>
+        <?php
+        $pageEyebrow = 'Billing';
+        $pageTitle = 'Plans';
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <?php if ($error !== null): ?>
         <div class="mb-6 rounded-xl border border-danger-border bg-danger-soft px-4 py-3 text-sm text-danger-text">

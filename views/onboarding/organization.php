@@ -3,15 +3,21 @@
 <head>
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+<body class="min-h-screen bg-surface text-text flex items-center justify-center px-4">
     <div class="card w-full max-w-md p-8">
+        <!--
+            No nav here, deliberately. This step runs before a workspace exists,
+            so every destination in the bar would bounce the user straight back
+            to this page. Sign out stays: somebody who reached this screen as the
+            wrong account has no other way out.
+        -->
         <div class="mb-3 flex justify-end">
             <?php require __DIR__ . '/../partials/sign-out.php'; ?>
         </div>
 
-        <p class="text-sm text-gray-500">Organization setup</p>
-        <h1 class="mt-2 text-2xl font-bold text-gray-900">What is your organization called?</h1>
-        <p class="mt-3 text-sm leading-6 text-gray-600">Create the team space above your account. You will be the owner.</p>
+        <p class="text-sm text-text-muted">Organization setup</p>
+        <h1 class="mt-2 text-2xl font-bold text-text-strong">What is your organization called?</h1>
+        <p class="mt-3 text-sm leading-6 text-text-muted">Create the team space above your account. You will be the owner.</p>
 
         <?php if (!empty($_GET['error']) && $_GET['error'] === 'missing_name'): ?>
         <div class="alert alert-error mt-4 px-3 py-2">Enter an organization name.</div>

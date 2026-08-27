@@ -32,9 +32,6 @@ $toneLabels = [
                     a firmer note later. Most people leave it exactly as it is.
                 </p>
         <?php $pageSubtitle = ob_get_clean();
-        ob_start(); ?>
-            <a href="/invoices" class="text-sm text-text-muted hover:text-text-strong">Back to invoices</a>
-        <?php $pageActions = ob_get_clean();
         $pageTitle = 'Reminder sequences';
         require __DIR__ . '/../partials/app-nav.php';
         ?>

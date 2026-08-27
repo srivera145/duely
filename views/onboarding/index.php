@@ -21,13 +21,14 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
     <div class="mx-auto max-w-3xl px-4 py-10" id="onboarding">
 
         <!--
-            Signed in on a centred page with no header. Sign out still has to be
-            reachable: this is where a user lands when they finish setup, and it
-            is the one page they may open on a shared machine.
+            The bar alone, not the full header partial: this page keeps its own
+            centred lockup and app-nav would render a second one. $navCompact
+            drops the bar's logo so only the centred one remains.
         -->
-        <div class="mb-4 flex justify-end">
-            <?php require __DIR__ . '/../partials/sign-out.php'; ?>
-        </div>
+        <?php
+        $navCompact = true;
+        require __DIR__ . '/../partials/nav-bar.php';
+        ?>
 
         <div class="mb-8 text-center">
             <div class="mb-6 flex justify-center">

@@ -27,14 +27,12 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
     <div class="mx-auto max-w-7xl px-4 py-10">
 
         <?php
-        // The nav links live in the partial; only the primary action is passed,
-        // or they would render twice.
+        // Only the primary action is passed. The nav links live in the
+        // partial, and passing them here too would render them twice.
         ob_start(); ?>
             <a href="/invoices/import" class="btn btn-primary btn-sm">Import CSV</a>
         <?php $pageActions = ob_get_clean();
         $pageTitle = 'Dashboard';
-        // The one page that carries the product nav today.
-        $showNav = true;
         require __DIR__ . '/../partials/app-nav.php';
         ?>
 

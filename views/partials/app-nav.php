@@ -1,6 +1,6 @@
 <?php
 /**
- * The authenticated header.
+ * The authenticated header: the product nav, then the page's own title block.
  *
  * Every signed-in page repeated the same wrapper: a title block on the left, an
  * action block on the right, and a `mb-8 flex flex-wrap items-start
@@ -9,21 +9,25 @@
  *
  * Parameters:
  *   $pageTitle        required — the <h1>, already escaped by the caller
- *   $pageEyebrow      small line above the title. Four pages use it as a
- *                     breadcrumb ("Invoices", "Sequences") rather than as the
- *                     brand, so it stays caller-supplied — replacing it with
- *                     the logo would delete the only way back up the hierarchy.
+ *   $pageEyebrow      small line above the title. Several pages use it as a
+ *                     breadcrumb ("Invoices", "Sequences"). It stays even now
+ *                     the nav exists: the nav says which section you are in,
+ *                     the eyebrow says which record inside it.
  *   $pageEyebrowHref  makes the eyebrow a link.
  *   $pageSubtitle     raw HTML under the title.
  *   $pageActions      raw HTML for the right-hand side, INCLUDING its own
- *                     wrapper. The eight pages do not agree on that wrapper —
- *                     some use `flex flex-wrap gap-2`, some a bare <a> — and
+ *                     wrapper. The pages do not agree on that wrapper — some
+ *                     use `flex flex-wrap gap-2`, some a bare <a> — and
  *                     imposing one here would respace five of them.
- *   $showNav          bool, default false — renders the product nav links.
+ *   $showNav          bool, default TRUE. It defaulted to false while only the
+ *                     dashboard carried nav; every other page was a dead end.
+ *                     Opting out is still possible — onboarding/organization.php
+ *                     does, because it runs before a workspace exists and every
+ *                     destination in the nav would 404 or bounce.
  *
- * The nav links are opt-in rather than always-on because today only the
- * dashboard carries them. Switching them on everywhere would change what seven
- * pages show, which is a product decision, not a refactor.
+ * Sign out lives in the nav bar, not in $pageActions. It is the same class of
+ * thing as the links beside it, and putting it there means a page that opts out
+ * of nav has to supply its own — which onboarding/organization.php does.
  */
 
 $pageTitle = $pageTitle ?? '';
@@ -31,18 +35,15 @@ $pageEyebrow = $pageEyebrow ?? null;
 $pageEyebrowHref = $pageEyebrowHref ?? null;
 $pageSubtitle = $pageSubtitle ?? '';
 $pageActions = $pageActions ?? '';
-$showNav = $showNav ?? false;
-
-$navLinks = [
-    'Invoices' => '/invoices',
-    'Clients' => '/clients',
-    'Sequences' => '/sequences',
-    'Email' => '/settings/email',
-    'Payments' => '/settings/payments',
-];
+$showNav = $showNav ?? true;
 ?>
+<?php if ($showNav): ?>
+<?php require __DIR__ . '/nav-bar.php'; ?>
+<?php endif; ?>
+
 <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
     <div>
+        <?php if (!$showNav): ?>
         <div class="mb-2">
             <?php
             $variant = 'mark';
@@ -52,6 +53,7 @@ $navLinks = [
             require __DIR__ . '/logo.php';
             ?>
         </div>
+        <?php endif; ?>
 
         <?php if ($pageEyebrow !== null): ?>
         <p class="text-sm text-text-muted">
@@ -69,27 +71,18 @@ $navLinks = [
     </div>
 
     <!--
-        The right-hand side. Sign out is outside the $showNav condition on
-        purpose: the nav links are a per-page decision, but a session the user
-        cannot end is not one they control, so it goes on every page.
-
         A single-child flex container adds no spacing, so pages that pass a bare
         <a> as $pageActions look exactly as they did.
     -->
     <div class="flex flex-wrap items-center gap-3">
-        <?php if ($showNav): ?>
-        <?php foreach ($navLinks as $label => $href): ?>
-        <a href="<?= $href ?>" class="text-sm text-text-muted hover:text-text-strong"><?= $label ?></a>
-        <?php endforeach; ?>
-        <?php endif; ?>
-
         <?= $pageActions ?>
 
+        <?php if (!$showNav): ?>
         <?php require __DIR__ . '/sign-out.php'; ?>
+        <?php endif; ?>
     </div>
 </div>
 <?php
 // Includes share the enclosing scope; a leftover here would bleed into the next
 // page's header if a view ever rendered two.
-unset($pageTitle, $pageEyebrow, $pageEyebrowHref, $pageSubtitle, $pageActions,
-    $showNav, $navLinks);
+unset($pageTitle, $pageEyebrow, $pageEyebrowHref, $pageSubtitle, $pageActions, $showNav);

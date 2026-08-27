@@ -17,18 +17,13 @@ $money = static fn (int $cents, string $currency): string => \Keel\App\Services\
 <body class="min-h-screen bg-surface text-text">
     <div class="mx-auto max-w-3xl px-4 py-10">
 
-        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-sm text-text-muted">Clients</p>
-                <h1 class="text-3xl font-bold text-text-strong">
-                    <?= $isNew ? 'New client' : $e($client['name']) ?>
-                </h1>
-            </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <a href="/clients" class="text-sm text-text-muted hover:text-text-strong">Back to clients</a>
-                <?php require __DIR__ . '/../partials/sign-out.php'; ?>
-            </div>
-        </div>
+        <?php
+        $pageActions = '<a href="/clients" class="text-sm text-text-muted hover:text-text-strong">Back to clients</a>';
+        $pageEyebrow = 'Clients';
+        $pageEyebrowHref = '/clients';
+        $pageTitle = $isNew ? 'New client' : $e($client['name']);
+        require __DIR__ . '/../partials/app-nav.php';
+        ?>
 
         <form id="client-form" class="space-y-6" novalidate>
             <input type="hidden" name="id" value="<?= $isNew ? '' : (int) $client['id'] ?>">
