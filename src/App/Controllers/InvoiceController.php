@@ -13,6 +13,7 @@ use Keel\App\Services\TenantContext;
 use Keel\Core\Activity;
 use Keel\Core\Controller;
 use Keel\Core\Request;
+use Keel\Core\Response;
 
 /**
  * Invoice list, editor, and the JSON endpoints the list uses.
@@ -106,7 +107,7 @@ class InvoiceController extends Controller
     }
 
     /**
-     * GET /invoices/{id}
+     * GET /invoices/{id}/edit — the form.
      */
     public function edit(Request $request, string $id): void
     {
@@ -128,7 +129,20 @@ class InvoiceController extends Controller
     }
 
     /**
-     * GET /invoices/{id}/timeline — everything that has happened to one invoice.
+     * GET /invoices/{id}/timeline — where this page used to live.
+     *
+     * A permanent redirect rather than a deletion. The old URL is in people's
+     * browser history and may be in a bookmark, and 301 is what tells the
+     * browser to stop asking. Kept indefinitely: it costs one route.
+     */
+    public function timelineRedirect(Request $request, string $id): never
+    {
+        Response::redirect('/invoices/' . (int) $id, 301);
+    }
+
+    /**
+     * GET /invoices/{id} — the invoice: what has happened to it, and the
+     * controls for what happens next.
      */
     public function show(Request $request, string $id): void
     {

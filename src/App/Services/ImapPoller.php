@@ -55,13 +55,16 @@ class ImapPoller
     /**
      * Poll every pollable mailbox for one tenant.
      *
-     * @return array{accounts:int, examined:int, recorded:int, paused:int, stopped:int, errors:string[]}
+     * @return array{accounts:int, examined:int, recorded:int, unmatched:int, paused:int, stopped:int, errors:string[]}
      */
     public function pollTenant(int $tenantId, ?DateTimeImmutable $now = null): array
     {
         $now ??= Clock::now();
 
-        $totals = ['accounts' => 0, 'examined' => 0, 'recorded' => 0, 'paused' => 0, 'stopped' => 0, 'errors' => []];
+        $totals = [
+            'accounts' => 0, 'examined' => 0, 'recorded' => 0, 'unmatched' => 0,
+            'paused' => 0, 'stopped' => 0, 'errors' => [],
+        ];
 
         foreach (EmailAccount::pollable($tenantId) as $account) {
             $totals['accounts']++;
@@ -71,6 +74,7 @@ class ImapPoller
 
                 $totals['examined'] += $result['examined'];
                 $totals['recorded'] += $result['recorded'];
+                $totals['unmatched'] += $result['unmatched'];
                 $totals['paused'] += $result['paused'];
                 $totals['stopped'] += $result['stopped'];
             } catch (Throwable $exception) {
@@ -86,7 +90,7 @@ class ImapPoller
     /**
      * Poll one mailbox.
      *
-     * @return array{examined:int, recorded:int, paused:int, stopped:int, cursor:?int}
+     * @return array{examined:int, recorded:int, unmatched:int, paused:int, stopped:int, cursor:?int}
      */
     public function pollAccount(int $tenantId, array $account, ?DateTimeImmutable $now = null): array
     {
@@ -94,7 +98,10 @@ class ImapPoller
         $accountId = (int) $account['id'];
         $folder = (string) ($account['imap_folder'] ?? 'INBOX');
 
-        $result = ['examined' => 0, 'recorded' => 0, 'paused' => 0, 'stopped' => 0, 'cursor' => null];
+        $result = [
+            'examined' => 0, 'recorded' => 0, 'unmatched' => 0,
+            'paused' => 0, 'stopped' => 0, 'cursor' => null,
+        ];
 
         $password = EmailAccount::imapPassword($account);
 
@@ -168,6 +175,7 @@ class ImapPoller
                 $outcome = $this->handle($tenantId, $account, $message, $now);
 
                 $result['recorded'] += $outcome['recorded'] ? 1 : 0;
+                $result['unmatched'] += $outcome['unmatched'] ? 1 : 0;
                 $result['paused'] += $outcome['paused'] ? 1 : 0;
                 $result['stopped'] += $outcome['stopped'] ? 1 : 0;
             }
@@ -194,7 +202,7 @@ class ImapPoller
     /**
      * Record one inbound message and take whatever action it calls for.
      *
-     * @return array{recorded:bool, paused:bool, stopped:bool, type:string}
+     * @return array{recorded:bool, unmatched:bool, paused:bool, stopped:bool, type:string}
      */
     public function handle(int $tenantId, array $account, InboundMessage $message, ?DateTimeImmutable $now = null): array
     {
@@ -205,6 +213,33 @@ class ImapPoller
 
         // Account plus UID is stable and always present, unlike Message-ID.
         $providerMessageId = $accountId . ':' . $message->uid;
+
+        $unmatched = $match['chase_id'] === null;
+
+        // ------------------------------------------------------------------
+        // The decision to store comes BEFORE the write, not after it.
+        //
+        // This used to record every message and then check whether it belonged
+        // to a chase. The matching was right -- an unrelated email matches
+        // nothing -- but the row was already written by then, snippet and all.
+        // The connected mailbox is the user's real inbox, so that meant Duely
+        // kept a copy of their bank mail, their family, and its own login codes,
+        // and the dashboard rendered them as "someone replied".
+        //
+        // The privacy page says Duely reads the mailbox "for the purpose of
+        // matching replies to your invoices". A message that matches no invoice
+        // is outside that purpose, and the only way to be sure it is not kept is
+        // never to write it down.
+        // ------------------------------------------------------------------
+        if ($unmatched && !$match['is_hard_bounce']) {
+            return [
+                'recorded' => false,
+                'unmatched' => true,
+                'paused' => false,
+                'stopped' => false,
+                'type' => $match['type'],
+            ];
+        }
 
         $eventId = ReplyEvent::record($tenantId, [
             'chase_id' => $match['chase_id'],
@@ -218,23 +253,44 @@ class ImapPoller
             'from_email' => $message->fromEmail,
             'subject' => mb_substr($message->subject, 0, 500),
             // A short extract only. The message body is never stored.
-            'snippet' => $message->snippet,
+            //
+            // And not even that for an unmatched bounce: the row is kept only
+            // so a bounce arriving before its chase is not lost, and a delivery
+            // report quotes the original message -- which would be a reminder,
+            // or worse, whatever the mailbox owner was actually writing about.
+            'snippet' => $unmatched ? null : $message->snippet,
             'rfc_message_id' => $message->messageId ?? '<duely-' . $providerMessageId . '@local>',
             'in_reply_to' => $message->inReplyTo,
             'thread_id' => $message->threadId,
-            'raw_headers' => mb_substr($message->rawHeaders, 0, 16000),
+            // Same reasoning: headers on an unmatched message are not ours.
+            'raw_headers' => $unmatched ? null : mb_substr($message->rawHeaders, 0, 16000),
             'received_at' => Clock::toDatabase($message->receivedAt ?? $now),
         ]);
 
         // Already seen on an earlier poll: do nothing at all.
         if ($eventId === null) {
-            return ['recorded' => false, 'paused' => false, 'stopped' => false, 'type' => $match['type']];
+            return [
+                'recorded' => false,
+                'unmatched' => false,
+                'paused' => false,
+                'stopped' => false,
+                'type' => $match['type'],
+            ];
         }
 
-        if ($match['chase_id'] === null) {
-            ReplyEvent::markProcessed($tenantId, $eventId, 'unmatched');
+        if ($unmatched) {
+            // A hard bounce with nowhere to attach yet. Kept because it can
+            // arrive before the chase it belongs to is matchable, and losing it
+            // means chasing an address that is already known to be dead.
+            ReplyEvent::markProcessed($tenantId, $eventId, 'unmatched_bounce');
 
-            return ['recorded' => true, 'paused' => false, 'stopped' => false, 'type' => $match['type']];
+            return [
+                'recorded' => false,
+                'unmatched' => true,
+                'paused' => false,
+                'stopped' => false,
+                'type' => $match['type'],
+            ];
         }
 
         return match ($match['type']) {
@@ -257,7 +313,7 @@ class ImapPoller
         if ($chase === null) {
             ReplyEvent::markProcessed($tenantId, $eventId, 'chase_missing');
 
-            return ['recorded' => true, 'paused' => false, 'stopped' => false, 'type' => ReplyEvent::TYPE_REPLY];
+            return ['recorded' => true, 'unmatched' => false, 'paused' => false, 'stopped' => false, 'type' => ReplyEvent::TYPE_REPLY];
         }
 
         $alreadyQuiet = !in_array($chase['status'], [Chase::STATUS_SCHEDULED, Chase::STATUS_ACTIVE], true);
@@ -277,7 +333,7 @@ class ImapPoller
             $this->notifyReply($tenantId, $chaseId, $message);
         }
 
-        return ['recorded' => true, 'paused' => !$alreadyQuiet, 'stopped' => false, 'type' => ReplyEvent::TYPE_REPLY];
+        return ['recorded' => true, 'unmatched' => false, 'paused' => !$alreadyQuiet, 'stopped' => false, 'type' => ReplyEvent::TYPE_REPLY];
     }
 
     private function handleBounce(int $tenantId, int $eventId, array $match, InboundMessage $message, DateTimeImmutable $now): array
@@ -289,7 +345,7 @@ class ImapPoller
         if (!$match['is_hard_bounce']) {
             ReplyEvent::markProcessed($tenantId, $eventId, 'soft_bounce_noted');
 
-            return ['recorded' => true, 'paused' => false, 'stopped' => false, 'type' => ReplyEvent::TYPE_BOUNCE];
+            return ['recorded' => true, 'unmatched' => false, 'paused' => false, 'stopped' => false, 'type' => ReplyEvent::TYPE_BOUNCE];
         }
 
         Chase::stop($tenantId, $chaseId);
@@ -309,7 +365,7 @@ class ImapPoller
 
         $this->notifyBounce($tenantId, $chaseId, $invoice, $message);
 
-        return ['recorded' => true, 'paused' => false, 'stopped' => true, 'type' => ReplyEvent::TYPE_BOUNCE];
+        return ['recorded' => true, 'unmatched' => false, 'paused' => false, 'stopped' => true, 'type' => ReplyEvent::TYPE_BOUNCE];
     }
 
     /**
@@ -333,14 +389,14 @@ class ImapPoller
         ReplyEvent::markProcessed($tenantId, $eventId, 'suppressed_client');
         Activity::log('chase.complaint', 'Chase', $chaseId, ['from' => $message->fromEmail]);
 
-        return ['recorded' => true, 'paused' => false, 'stopped' => true, 'type' => ReplyEvent::TYPE_COMPLAINT];
+        return ['recorded' => true, 'unmatched' => false, 'paused' => false, 'stopped' => true, 'type' => ReplyEvent::TYPE_COMPLAINT];
     }
 
     private function handleAutoReply(int $tenantId, int $eventId, array $match): array
     {
         ReplyEvent::markProcessed($tenantId, $eventId, 'auto_reply_ignored');
 
-        return ['recorded' => true, 'paused' => false, 'stopped' => false, 'type' => ReplyEvent::TYPE_AUTO_REPLY];
+        return ['recorded' => true, 'unmatched' => false, 'paused' => false, 'stopped' => false, 'type' => ReplyEvent::TYPE_AUTO_REPLY];
     }
 
     // -------------------------------------------------------- notifications

@@ -67,7 +67,7 @@ const flash = (id, message, isError = false) => {
 	}
 };
 
-const bindForm = ({ formId, endpoint, errorBox, savedBox, redirect, savedMessage }) => {
+const bindForm = ({ formId, endpoint, errorBox, savedBox, redirect, savedMessage, redirectOnSave = false }) => {
 	const form = document.getElementById(formId);
 	if (!form) return;
 
@@ -111,7 +111,11 @@ const bindForm = ({ formId, endpoint, errorBox, savedBox, redirect, savedMessage
 		// rather than letting the user wonder where their new client went.
 		flash(savedBox, body.message || savedMessage);
 
-		if (wasNew && body.id) {
+		// A new record always goes to its own page. An existing one does too
+		// when the form asks for it: the invoice form is reached *from* the
+		// invoice, so leaving the user on the form after saving strands them
+		// one click from where they started.
+		if (body.id && (wasNew || redirectOnSave)) {
 			window.location.href = `${redirect}/${body.id}`;
 		}
 	});
@@ -125,6 +129,8 @@ export const initRecords = () => {
 		savedBox: 'invoice-saved',
 		redirect: '/invoices',
 		savedMessage: 'Invoice saved.',
+		// Back to the invoice, not left sitting on the form.
+		redirectOnSave: true,
 	});
 
 	bindForm({

@@ -15,6 +15,7 @@ use Keel\App\Models\Sequence;
 use Keel\App\Services\ChaseScheduler;
 use Keel\App\Services\ChaseSender;
 use Keel\App\Services\Clock;
+use Keel\App\Services\DashboardMetrics;
 use Keel\App\Services\ImapPoller;
 use Keel\App\Services\InboundMessage;
 use Keel\App\Services\ReplyMatcher;
@@ -436,6 +437,239 @@ class ReplyDetectionFeatureTest extends TestCase
      *
      * @return array{chase_id:int, client_id:int, invoice_id:int, root_message_id:string}
      */
+    // ============================================================
+    // Mail that is not about an invoice.
+    //
+    // The poller used to record every message in the connected mailbox and only
+    // then ask whether it belonged to a chase. That mailbox is the user's real
+    // inbox, so Duely kept a copy of their ordinary mail -- and the dashboard
+    // rendered it as "someone replied", including Duely's own login codes with
+    // the code visible in the snippet.
+    // ============================================================
+
+    public function testAnUnrelatedEmailIsNotStoredAtAll(): void
+    {
+        $this->startChase('INV-UNRELATED', 'dana@whitfield.test');
+
+        $before = $this->eventCount();
+
+        $result = $this->poll([[
+            'uid' => 501,
+            'headers' => "From: Duely <hello@get-duely.com>\r\n"
+                . "To: ada@studio.test\r\n"
+                . "Subject: Your verification code\r\n"
+                . "Message-ID: <otp-1@get-duely.com>\r\n"
+                . "Content-Type: text/plain\r\n",
+            'body' => "Use this code to sign in: 471973. It expires in 10 minutes.\r\n",
+        ]]);
+
+        // No row. Not a hidden one, not an empty one -- none. The only way to be
+        // sure a login code is not kept is never to write it down.
+        self::assertSame($before, $this->eventCount(), 'unrelated mail was stored');
+
+        // And nothing of it survives anywhere in the table.
+        self::assertSame(0, $this->rowsContaining('471973'));
+        self::assertSame(0, $this->rowsContaining('get-duely.com'));
+
+        // Still counted, so the operations page keeps its throughput number.
+        self::assertSame(1, $result['examined'], 'the message should still be examined');
+        self::assertSame(0, $result['recorded'], 'recorded means attached to a chase');
+        self::assertSame(1, $result['unmatched']);
+    }
+
+    public function testAGenuineReplyIsStillRecordedAndStillPauses(): void
+    {
+        $chase = $this->startChase('INV-STILL-WORKS', 'dana@whitfield.test');
+
+        $result = $this->poll([
+            $this->replyMessage(1, $chase['root_message_id'], 'dana@whitfield.test'),
+        ]);
+
+        self::assertSame(1, $result['recorded']);
+        self::assertSame(0, $result['unmatched']);
+        self::assertSame(1, $result['paused']);
+
+        self::assertSame(
+            Chase::STATUS_PAUSED,
+            Chase::find($this->tenantId, $chase['chase_id'])['status']
+        );
+
+        // The row exists, is attached, and keeps its snippet -- this one is
+        // about an invoice, and the user needs to read what was said.
+        $event = $this->latestEvent();
+        self::assertNotNull($event['chase_id']);
+        self::assertNotEmpty($event['snippet']);
+    }
+
+    public function testAnOutOfOfficeStillDoesNotPause(): void
+    {
+        $chase = $this->startChase('INV-OOO-KEPT', 'dana@whitfield.test');
+
+        $result = $this->poll([[
+            'uid' => 502,
+            'headers' => "From: Dana Whitfield <dana@whitfield.test>\r\n"
+                . "To: ada@studio.test\r\n"
+                . "Subject: Automatic reply: Invoice INV-OOO-KEPT\r\n"
+                . "Message-ID: <ooo-kept@whitfield.test>\r\n"
+                . 'In-Reply-To: ' . $chase['root_message_id'] . "\r\n"
+                . "Auto-Submitted: auto-replied\r\n"
+                . "Content-Type: text/plain\r\n",
+            'body' => "I am away until the 30th.\r\n",
+        ]]);
+
+        // It matched a chase, so it is stored -- but a holiday is not an answer
+        // and the ladder keeps climbing.
+        self::assertSame(1, $result['recorded']);
+        self::assertSame(0, $result['paused']);
+        self::assertNotSame(
+            Chase::STATUS_PAUSED,
+            Chase::find($this->tenantId, $chase['chase_id'])['status']
+        );
+    }
+
+    public function testAnUnmatchedBounceIsKeptButWithoutABodySnippet(): void
+    {
+        $this->startChase('INV-BOUNCE-EARLY', 'dana@whitfield.test');
+
+        $before = $this->eventCount();
+
+        $this->poll([[
+            'uid' => 503,
+            'headers' => "From: MAILER-DAEMON@mail.test\r\n"
+                . "To: ada@studio.test\r\n"
+                . "Subject: Undelivered Mail Returned to Sender\r\n"
+                . "Message-ID: <bounce-early@mail.test>\r\n"
+                . "X-Failed-Recipients: nobody@nowhere.test\r\n"
+                . "Content-Type: multipart/report; report-type=delivery-status\r\n",
+            'body' => "550 5.1.1 The email account that you tried to reach does not exist.\r\n",
+        ]]);
+
+        // Kept, because a bounce can arrive before the chase it belongs to is
+        // matchable, and losing it means chasing a dead address.
+        self::assertSame($before + 1, $this->eventCount());
+
+        $event = $this->latestEvent();
+        self::assertNull($event['chase_id']);
+        self::assertSame(ReplyEvent::TYPE_BOUNCE, $event['type']);
+
+        // The address and the reason, never the body. A delivery report quotes
+        // the original message, which is the one thing that must not be kept
+        // from a message with nowhere to attach.
+        self::assertNotEmpty($event['from_email']);
+        self::assertEmpty($event['snippet'], 'an unmatched bounce kept a body snippet');
+        self::assertEmpty($event['raw_headers'], 'an unmatched bounce kept its headers');
+    }
+
+    public function testTheDashboardShowsNothingWhenNothingMatchedAChase(): void
+    {
+        $this->startChase('INV-DASH', 'dana@whitfield.test');
+
+        $this->poll([[
+            'uid' => 504,
+            'headers' => "From: Duely <hello@get-duely.com>\r\n"
+                . "To: ada@studio.test\r\n"
+                . "Subject: Your verification code\r\n"
+                . "Message-ID: <otp-2@get-duely.com>\r\n"
+                . "Content-Type: text/plain\r\n",
+            'body' => "Use this code to sign in: 471973.\r\n",
+        ]]);
+
+        // Belt and braces: even an unmatched row written by an older build must
+        // not reach this panel, so the row is forced in and the query is what is
+        // under test.
+        Database::connection()->prepare(
+            'INSERT INTO reply_events
+                (tenant_id, email_account_id, provider_message_id, provider_uid, type,
+                 matched_by, from_email, subject, snippet, rfc_message_id, received_at, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
+        )->execute([
+            $this->tenantId,
+            $this->accountId,
+            'legacy:999',
+            999,
+            ReplyEvent::TYPE_REPLY,
+            'none',
+            'admin@client-cue.com',
+            'Your ClientCue Login Code',
+            'Hello hello! Your one-time login code is: 724530',
+            '<legacy-999@client-cue.com>',
+        ]);
+
+        $attention = (new DashboardMetrics())->needsAttention($this->tenantId);
+
+        self::assertSame([], $attention, 'unmatched mail reached the dashboard');
+    }
+
+    public function testAHistoricalUnmatchedRowNeverReachesTheInboxViewEither(): void
+    {
+        $this->startChase('INV-INBOX', 'dana@whitfield.test');
+
+        Database::connection()->prepare(
+            'INSERT INTO reply_events
+                (tenant_id, email_account_id, provider_message_id, provider_uid, type,
+                 matched_by, from_email, subject, snippet, rfc_message_id, received_at, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())'
+        )->execute([
+            $this->tenantId,
+            $this->accountId,
+            'legacy:998',
+            998,
+            ReplyEvent::TYPE_REPLY,
+            'none',
+            'bank@example.test',
+            'Your statement is ready',
+            'Your December statement is now available.',
+            '<legacy-998@example.test>',
+        ]);
+
+        $rows = ReplyEvent::recentWithContext($this->tenantId);
+
+        // Asserted positively. A foreach over an empty result asserts nothing,
+        // which passes for the wrong reason and tells PHPUnit the test is risky.
+        self::assertSame(
+            [],
+            array_values(array_filter($rows, static fn (array $row): bool => $row['chase_id'] === null)),
+            'an unattached row reached the inbox view'
+        );
+
+        // And the row really is in the table, so the filter is what excluded it
+        // rather than the insert having failed.
+        $statement = Database::connection()->prepare(
+            'SELECT COUNT(*) FROM reply_events WHERE tenant_id = ? AND from_email = ?'
+        );
+        $statement->execute([$this->tenantId, 'bank@example.test']);
+        self::assertSame(1, (int) $statement->fetchColumn());
+    }
+
+    private function latestEvent(): array
+    {
+        $statement = Database::connection()->prepare(
+            'SELECT * FROM reply_events WHERE tenant_id = ? ORDER BY id DESC LIMIT 1'
+        );
+        $statement->execute([$this->tenantId]);
+
+        return $statement->fetch() ?: [];
+    }
+
+    /**
+     * How many rows anywhere in the table carry this string, in any column that
+     * could hold message content.
+     */
+    private function rowsContaining(string $needle): int
+    {
+        $statement = Database::connection()->prepare(
+            'SELECT COUNT(*) FROM reply_events
+             WHERE COALESCE(snippet, "") LIKE ?
+                OR COALESCE(subject, "") LIKE ?
+                OR COALESCE(from_email, "") LIKE ?
+                OR COALESCE(raw_headers, "") LIKE ?'
+        );
+        $like = '%' . $needle . '%';
+        $statement->execute([$like, $like, $like, $like]);
+
+        return (int) $statement->fetchColumn();
+    }
+
     private function startChase(string $number, string $clientEmail): array
     {
         $this->ensureAccount();

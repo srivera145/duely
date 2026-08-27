@@ -55,7 +55,7 @@ $eventStyles = [
         <?php $pageSubtitle = ob_get_clean();
         ob_start(); ?>
             <div class="flex flex-wrap gap-2">
-                <a href="/invoices/<?= (int) $invoice['id'] ?>" class="btn btn-secondary border border-card-border btn-sm">Edit</a>
+                <a href="/invoices/<?= (int) $invoice['id'] ?>/edit" class="btn btn-secondary border border-card-border btn-sm">Edit</a>
                 <?php if ($isOpen): ?>
                 <button type="button" class="btn btn-primary btn-sm" data-mark-paid="<?= (int) $invoice['id'] ?>">
                     Mark paid

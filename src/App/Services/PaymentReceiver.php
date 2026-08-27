@@ -155,7 +155,7 @@ class PaymentReceiver
         $paid = MoneyParser::format($received, $currency);
         $total = MoneyParser::format($due, $currency);
         $left = MoneyParser::format($due - $received, $currency);
-        $url = rtrim((string) Env::get('APP_URL', ''), '/') . '/invoices/' . (int) $invoice['id'] . '/timeline';
+        $url = rtrim((string) Env::get('APP_URL', ''), '/') . '/invoices/' . (int) $invoice['id'];
 
         Mailer::send(
             (string) $owner['email'],

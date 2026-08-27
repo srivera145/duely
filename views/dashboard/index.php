@@ -139,7 +139,7 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
                             </span>
                             <?php if (!empty($event['invoice_number'])): ?>
                             <span class="text-text-muted">on</span>
-                            <a href="/invoices/<?= (int) $event['invoice_id'] ?>/timeline" class="hover:underline">
+                            <a href="/invoices/<?= (int) $event['invoice_id'] ?>" class="hover:underline">
                                 <?= $e($event['invoice_number']) ?>
                             </a>
                             <?php endif; ?>
@@ -199,7 +199,7 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <a href="/invoices/<?= (int) $chase['invoice_id'] ?>/timeline"
+                                <a href="/invoices/<?= (int) $chase['invoice_id'] ?>"
                                    class="font-medium text-text-strong hover:underline">
                                     <?= $e($chase['number']) ?>
                                 </a>

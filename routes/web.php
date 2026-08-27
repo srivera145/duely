@@ -202,8 +202,17 @@ $router->post('/impersonation/stop', [ImpersonationController::class, 'stop']);
             $router->get('/invoices', [InvoiceController::class, 'index']);
             $router->get('/invoices/new', [InvoiceController::class, 'create']);
             $router->get('/invoices/import', [ImportController::class, 'show']);
-            $router->get('/invoices/{id}', [InvoiceController::class, 'edit']);
-            $router->get('/invoices/{id}/timeline', [InvoiceController::class, 'show']);
+            // The invoice itself lives on the canonical URL. It used to be the
+            // edit form, which put the form on the noun and the invoice on a
+            // sub-path -- and since nothing linked to that sub-path, the chase
+            // controls were reachable only by typing /timeline by hand.
+            $router->get('/invoices/{id}', [InvoiceController::class, 'show']);
+            $router->get('/invoices/{id}/edit', [InvoiceController::class, 'edit']);
+
+            // Kept, permanently. The old URL is in browser history and may be
+            // bookmarked; 301 rather than deletion so those still land
+            // somewhere, and land in the right place.
+            $router->get('/invoices/{id}/timeline', [InvoiceController::class, 'timelineRedirect']);
             $router->get('/api/invoices', [InvoiceController::class, 'listJson']);
             $router->get('/api/dashboard', [DashboardController::class, 'metrics']);
 

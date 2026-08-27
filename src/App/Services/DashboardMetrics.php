@@ -239,6 +239,12 @@ class DashboardMetrics
 
     /**
      * Anything the user should look at: replies and bounces not yet acted on.
+     *
+     * `chase_id IS NOT NULL` is defence in depth. The poller no longer stores an
+     * unmatched message at all, but rows written before that fix exist, and this
+     * panel is where they surfaced: unrelated mail rendered as "someone
+     * replied", snippet and all, including Duely's own login codes. A row with
+     * no chase is not about an invoice, so it is not this panel's business.
      */
     public function needsAttention(int $tenantId, int $limit = 10): array
     {
@@ -251,6 +257,7 @@ class DashboardMetrics
                 LEFT JOIN invoices i ON i.id = ch.invoice_id AND i.tenant_id = r.tenant_id
                 LEFT JOIN clients c ON c.id = i.client_id AND c.tenant_id = r.tenant_id
                 WHERE r.tenant_id = ?
+                  AND r.chase_id IS NOT NULL
                   AND r.type IN (?, ?)
                 ORDER BY r.received_at DESC, r.id DESC
                 LIMIT ? OFFSET ?';

@@ -38,7 +38,13 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
                 <?php endif; ?>
         <?php $pageSubtitle = ob_get_clean();
         ob_start(); ?>
+            <?php if ($isNew): ?>
             <a href="/invoices" class="text-sm text-text-muted hover:text-text-strong">Back to invoices</a>
+            <?php else: ?>
+            <a href="/invoices/<?= (int) $invoice['id'] ?>" class="text-sm text-text-muted hover:text-text-strong">
+                Back to <?= $e($invoice['number']) ?>
+            </a>
+            <?php endif; ?>
         <?php $pageActions = ob_get_clean();
         $pageTitle = $isNew ? 'New invoice' : $e($invoice['number']);
         $pageEyebrow = 'Invoices';
@@ -235,7 +241,14 @@ $daysOverdue = $isNew ? null : \Keel\App\Models\Invoice::daysOverdue($invoice);
 
             <div class="flex flex-wrap items-center gap-3">
                 <button type="submit" class="btn btn-primary"><?= $isNew ? 'Create invoice' : 'Save changes' ?></button>
-                <a href="/invoices" class="btn btn-secondary border border-card-border">Cancel</a>
+                <!--
+                    Cancel returns where the user came from. On an existing
+                    invoice that is the invoice, not the list -- dropping them
+                    back at the top of a list they had already navigated out of
+                    is the same as losing their place.
+                -->
+                <a href="<?= $isNew ? '/invoices' : '/invoices/' . (int) $invoice['id'] ?>"
+                   class="btn btn-secondary border border-card-border">Cancel</a>
                 <?php if (!$isNew): ?>
                 <button type="button" id="delete-invoice" class="btn ml-auto text-sm text-danger-text hover:underline">
                     Delete invoice

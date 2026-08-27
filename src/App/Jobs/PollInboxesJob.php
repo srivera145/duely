@@ -38,7 +38,7 @@ class PollInboxesJob implements Job
     }
 
     /**
-     * @return array{tenants:int, accounts:int, examined:int, recorded:int, paused:int, stopped:int, errors:string[]}
+     * @return array{tenants:int, accounts:int, examined:int, recorded:int, unmatched:int, paused:int, stopped:int, errors:string[]}
      */
     public function run(?int $onlyTenantId = null, ?DateTimeImmutable $now = null): array
     {
@@ -49,7 +49,9 @@ class PollInboxesJob implements Job
 
         $totals = [
             'tenants' => 0, 'accounts' => 0, 'examined' => 0,
-            'recorded' => 0, 'paused' => 0, 'stopped' => 0, 'errors' => [],
+            // `recorded` is what was attached to a chase; `unmatched` is mail
+            // that was looked at and deliberately not stored.
+            'recorded' => 0, 'unmatched' => 0, 'paused' => 0, 'stopped' => 0, 'errors' => [],
         ];
 
         foreach ($tenantIds as $tenantId) {
@@ -58,7 +60,7 @@ class PollInboxesJob implements Job
             try {
                 $result = $poller->pollTenant($tenantId, $now);
 
-                foreach (['accounts', 'examined', 'recorded', 'paused', 'stopped'] as $key) {
+                foreach (['accounts', 'examined', 'recorded', 'unmatched', 'paused', 'stopped'] as $key) {
                     $totals[$key] += $result[$key];
                 }
 

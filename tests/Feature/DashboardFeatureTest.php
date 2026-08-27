@@ -474,7 +474,7 @@ class DashboardFeatureTest extends TestCase
         $marked = $this->postJson('/api/invoices/' . $ownerInvoice . '/mark-paid', ['_csrf' => $this->csrfToken()]);
         self::assertSame(404, $marked->status);
 
-        $timeline = $this->get('/invoices/' . $ownerInvoice . '/timeline');
+        $timeline = $this->get('/invoices/' . $ownerInvoice);
         self::assertSame(302, $timeline->status, 'another tenant invoice timeline was rendered');
 
         // Nothing changed.

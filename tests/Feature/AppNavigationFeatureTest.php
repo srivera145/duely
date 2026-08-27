@@ -124,7 +124,7 @@ class AppNavigationFeatureTest extends TestCase
 
         foreach ([
             '/invoices/' . $this->invoiceId,
-            '/invoices/' . $this->invoiceId . '/timeline',
+            '/invoices/' . $this->invoiceId . '/edit',
             '/clients/' . $this->clientId,
             '/sequences/' . $this->sequenceId,
         ] as $path) {

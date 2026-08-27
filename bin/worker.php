@@ -151,12 +151,18 @@ function pollInboxes(array $options): array
 
 function reportInbox(array $totals): void
 {
+    // `examined` is everything the poller looked at; `attached` is what belonged
+    // to a chase and was kept; `ignored` is unrelated mail that was counted and
+    // then deliberately not stored. The gap between the first two is the number
+    // worth watching, and keeping `examined` is what lets the operations page
+    // still show throughput.
     fwrite(STDOUT, sprintf(
-        "[duely] %s  inbox: accounts=%d examined=%d recorded=%d paused=%d stopped=%d\n",
+        "[duely] %s  inbox: accounts=%d examined=%d attached=%d ignored=%d paused=%d stopped=%d\n",
         date('Y-m-d H:i:s'),
         $totals['accounts'],
         $totals['examined'],
         $totals['recorded'],
+        $totals['unmatched'],
         $totals['paused'],
         $totals['stopped']
     ));

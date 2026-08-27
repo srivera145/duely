@@ -167,6 +167,10 @@ class ReplyEvent extends BaseModel
 
     /**
      * Recent inbound activity joined to the invoice it concerns, for the inbox view.
+     *
+     * Attached events only. Mail that matched no chase is not activity on an
+     * invoice, and showing it here is how Duely's own login codes ended up on
+     * a customer's dashboard.
      */
     public static function recentWithContext(int $tenantId, int $limit = 50, int $offset = 0): array
     {
@@ -180,6 +184,7 @@ class ReplyEvent extends BaseModel
                 LEFT JOIN invoices i ON i.id = ch.invoice_id AND i.tenant_id = r.tenant_id
                 LEFT JOIN clients c ON c.id = i.client_id AND c.tenant_id = r.tenant_id
                 WHERE r.tenant_id = ?
+                  AND r.chase_id IS NOT NULL
                 ORDER BY r.received_at DESC, r.id DESC
                 LIMIT ? OFFSET ?';
 

@@ -863,7 +863,7 @@ class ConnectPaymentsFeatureTest extends TestCase
         $withOwnLink = $this->invoice('INV-SHOW-MANUAL', 18, 'https://pay.me/mine');
         $this->startChase($withOwnLink);
 
-        $body = $this->get('/invoices/' . $withOwnLink . '/timeline')->body;
+        $body = $this->get('/invoices/' . $withOwnLink)->body;
 
         self::assertStringContainsString('Carries your own payment link', $body);
         self::assertStringContainsString('https://pay.me/mine', $body);
@@ -871,7 +871,7 @@ class ConnectPaymentsFeatureTest extends TestCase
         $optedOut = $this->invoice('INV-SHOW-NONE', 18, null, null, PaymentLinkService::INVOICE_NONE);
         $this->startChase($optedOut);
 
-        $body = $this->get('/invoices/' . $optedOut . '/timeline')->body;
+        $body = $this->get('/invoices/' . $optedOut)->body;
 
         // Said in the user's terms, not as a reason code.
         self::assertStringContainsString('you turned it off for this invoice', $body);
