@@ -69,9 +69,11 @@ $sections = [
         'Paid plans are billed monthly in advance through Stripe. You can cancel at any time and '
         . 'keep access until the end of the period you have paid for; we do not refund part '
         . 'months, and we do not bill you again after you cancel.',
-        'Founding accounts — the first fifty that start paying — keep their price for as long as '
-        . 'the subscription stays active. If the subscription is cancelled, the founding price '
-        . 'goes with it.',
+        'There are fifty founding places. Creating an account takes one and holds it for 30 days. '
+        . 'If a paid subscription starts within that time, the founding price applies for as long '
+        . 'as the subscription stays active, on whichever plan the account is on. If it does not, '
+        . 'the place returns to the pool and standard pricing applies; we email a warning before '
+        . 'that happens. If the subscription is later cancelled, the founding price goes with it.',
         'If a payment fails, we do not cut you off on the first attempt. Stripe retries; if it '
         . 'never succeeds, the account drops to the free plan and chases beyond the free limit '
         . 'are paused rather than deleted.',

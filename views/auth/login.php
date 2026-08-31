@@ -137,8 +137,8 @@ $csrfToken = \Keel\Core\Csrf::token();
 
                 <p class="mt-7 border-t border-card-border pt-5 text-center text-sm text-text-muted">
                     Not signed up yet?
-                    <a href="/#waitlist" class="text-brand underline underline-offset-4 hover:text-brand-hover">
-                        Join the waitlist
+                    <a href="/signup" class="text-brand underline underline-offset-4 hover:text-brand-hover">
+                        Create an account
                     </a>
                 </p>
             </section>

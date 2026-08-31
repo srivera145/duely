@@ -32,6 +32,7 @@ declare(strict_types=1);
 
 use Keel\App\Jobs\PollInboxesJob;
 use Keel\App\Jobs\ProcessDueChasesJob;
+use Keel\App\Jobs\ReleaseExpiredFoundingSlotsJob;
 use Keel\Core\Env;
 
 require dirname(__DIR__) . '/vendor/autoload.php';
@@ -82,6 +83,9 @@ try {
 
     $lastChaseTick = 0;
     $lastPollTick = 0;
+    // Daily housekeeping. Starts at 0 so it runs once on boot rather than
+    // waiting a day, which also means a restart is a way to force it.
+    $lastDailyTick = 0;
 
     while ($running) {
         $didJobWork = false;
@@ -112,6 +116,18 @@ try {
             }
         }
 
+        // Founding holds. Once a day is plenty: the window is thirty days and
+        // the warning goes out a week ahead, so a few hours of drift changes
+        // nothing about who keeps their place.
+        if (time() - $lastDailyTick >= 86400) {
+            $lastDailyTick = time();
+            $founding = releaseExpiredFoundingSlots();
+
+            if ($founding['warned'] > 0 || $founding['released'] > 0 || $founding['errors'] !== []) {
+                reportFounding($founding);
+            }
+        }
+
         if (!$didJobWork) {
             sleep(2);
         }
@@ -139,6 +155,38 @@ function runOnce(array $options, ?callable $sleeper): void
     }
 
     report(tickChases($options, $sleeper));
+
+    // --once is what a cron-driven deployment calls, so the daily work has to
+    // happen on that path too. The job is idempotent -- a slot already released
+    // matches nothing on the second pass -- so running it more often than daily
+    // is harmless.
+    reportFounding(releaseExpiredFoundingSlots());
+}
+
+/**
+ * @return array{warned:int, released:int, errors:string[]}
+ */
+function releaseExpiredFoundingSlots(): array
+{
+    return (new ReleaseExpiredFoundingSlotsJob())->run();
+}
+
+function reportFounding(array $totals): void
+{
+    if ($totals['warned'] === 0 && $totals['released'] === 0 && $totals['errors'] === []) {
+        return;
+    }
+
+    fwrite(STDOUT, sprintf(
+        "[duely] %s  founding: warned=%d released=%d\n",
+        date('Y-m-d H:i:s'),
+        $totals['warned'],
+        $totals['released']
+    ));
+
+    foreach ($totals['errors'] as $error) {
+        fwrite(STDERR, '[duely] founding: ' . $error . "\n");
+    }
 }
 
 /**

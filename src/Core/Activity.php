@@ -4,17 +4,27 @@ namespace Keel\Core;
 
 class Activity
 {
+    /**
+     * @param ?int $organizationId the workspace this belongs to, when the caller
+     *                             knows it and the session does not. Background
+     *                             jobs have no session at all, so an entry they
+     *                             write is unattributable without this -- and an
+     *                             unattributed entry never reaches the feed the
+     *                             customer reads, which is filtered by workspace.
+     */
     public static function log(
         string $action,
         ?string $subjectType = null,
         ?int $subjectId = null,
-        array $metadata = []
+        array $metadata = [],
+        ?int $organizationId = null
     ): void {
         try {
             $userId = Auth::id();
-            $organizationId = null;
 
-            if ((bool) Env::get('MULTI_TENANCY_ENABLED', false) && Session::has('organization_id')) {
+            if ($organizationId === null
+                && (bool) Env::get('MULTI_TENANCY_ENABLED', false)
+                && Session::has('organization_id')) {
                 $organizationId = Session::get('organization_id');
             }
 

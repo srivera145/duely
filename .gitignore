@@ -12,6 +12,11 @@ storage/app/*
 !storage/app/.gitkeep
 storage/logs/*
 !storage/logs/.gitkeep
+
+# The founding counter's 60-second cache. Regenerated on demand; a stale copy
+# from somebody else's machine would be a wrong number on a public page.
+storage/cache/*
+!storage/cache/.gitkeep
 .phpunit.cache/
 .DS_Store
 

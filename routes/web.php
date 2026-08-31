@@ -30,6 +30,7 @@ use Keel\App\Controllers\RobotsController;
 use Keel\App\Controllers\SequenceController;
 use Keel\App\Controllers\SettingsController;
 use Keel\App\Controllers\ToneAssistController;
+use Keel\App\Controllers\SignupController;
 use Keel\App\Controllers\SitemapController;
 use Keel\App\Controllers\ThemeController;
 use Keel\App\Controllers\StripeWebhookController;
@@ -77,6 +78,15 @@ $router->group(['middleware' => [CsrfMiddleware::class]], function ($router) use
         $router->post('/api/waitlist', [WaitlistController::class, 'join']);
         $router->get('/waitlist/confirm', [WaitlistController::class, 'confirm']);
         $router->get('/waitlist/unsubscribe', [WaitlistController::class, 'unsubscribe']);
+
+        // Signup. Throttled by IP with the rest of this group; OtpService
+        // throttles per email address on top, because the form sends mail to an
+        // address a stranger chose.
+        //
+        // There is no signup-specific auth endpoint: the form posts to
+        // /auth/otp/* below, the same two the sign-in form uses.
+        $router->get('/signup', [SignupController::class, 'show'], ['sitemap' => true]);
+        $router->get('/register', [SignupController::class, 'alias']);
 
         $router->get('/login', [AuthController::class, 'showLogin'], ['sitemap' => true]);
         $router->post('/auth/otp/request', [AuthController::class, 'requestOtp']);

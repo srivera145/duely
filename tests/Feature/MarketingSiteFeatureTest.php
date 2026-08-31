@@ -488,7 +488,13 @@ class MarketingSiteFeatureTest extends TestCase
         $body = $this->get('/?waitlist=sent&waitlist_message=Your+account+is+suspended')->body;
 
         self::assertStringNotContainsString('Your account is suspended', $body);
-        self::assertStringContainsString('Check your inbox', $body);
+
+        // The homepage no longer renders the waitlist form, so it no longer
+        // renders its flash either -- the "Check your inbox" assertion that used
+        // to live here was checking the form, not the injection. The property
+        // worth keeping is that a query parameter cannot put words on the page,
+        // and that is what the line above tests.
+        self::assertStringNotContainsString('waitlist_message', $body);
     }
 
     public function testTheJoinEndpointRequiresCsrf(): void

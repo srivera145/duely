@@ -383,14 +383,13 @@ $updatedLabel = date(\Keel\App\Services\Dates::LONG, strtotime($updatedOn));
         <div class="rounded-2xl border border-card-border bg-card p-8 sm:p-10">
             <h2 class="text-2xl font-semibold tracking-tight text-text-strong">Still want in?</h2>
             <p class="mt-3 leading-relaxed text-text-muted">
-                Join the waitlist. Reading this page first is exactly the right instinct.
+                Reading this page first is exactly the right instinct.
             </p>
-            <div id="waitlist" class="mt-6 max-w-lg scroll-mt-24">
+            <div class="mt-6 max-w-lg">
                 <?php
-                $source = 'landing_footer';
-                $landingPath = '/';
-                $formId = 'waitlist-form-privacy';
-                require __DIR__ . '/partials/waitlist-form.php';
+                $formId = 'signup-form-privacy';
+                $source = 'privacy';
+                require __DIR__ . '/partials/signup-form.php';
                 ?>
             </div>
         </div>

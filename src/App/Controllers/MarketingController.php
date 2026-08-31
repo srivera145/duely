@@ -2,7 +2,7 @@
 
 namespace Keel\App\Controllers;
 
-use Keel\App\Services\PlanService;
+use Keel\App\Services\FoundingCounter;
 use Keel\Core\Controller;
 use Keel\Core\Env;
 use Keel\Core\Request;
@@ -111,6 +111,7 @@ class MarketingController extends Controller
                 . 'final message at thirty — from your own inbox, and never after a client has replied.',
             'jsonLd' => [$this->howTo()],
             'steps' => self::SETUP_STEPS,
+            'founding' => $this->foundingAvailability(),
         ]);
     }
 
@@ -149,14 +150,15 @@ class MarketingController extends Controller
     /**
      * How many founding places are left, if the database is reachable.
      *
-     * The landing page must render for someone who has never signed in, on a
-     * box where the database is down. A number that cannot be read is simply
-     * not shown rather than a 500.
+     * Through FoundingCounter, which caches for a minute and returns null
+     * rather than a guess. The landing page must render for someone who has
+     * never signed in, on a box where the database is down -- and a number that
+     * cannot be read is simply not shown.
      */
     private function foundingAvailability(): ?array
     {
         try {
-            return (new PlanService())->foundingAvailability();
+            return (new FoundingCounter())->snapshot();
         } catch (Throwable) {
             return null;
         }

@@ -35,9 +35,9 @@ $current = $current ?? '';
                 Pricing
             </a>
             <a href="/login" class="text-text-muted transition hover:text-text-strong">Sign in</a>
-            <a href="/#waitlist"
+            <a href="/signup"
                class="rounded-lg bg-brand px-3 py-1.5 font-medium text-brand-contrast transition hover:bg-brand-hover">
-                Join the waitlist
+                Create your account
             </a>
             <button type="button"
                     class="theme-toggle-button h-9 w-9"

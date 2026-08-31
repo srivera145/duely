@@ -107,20 +107,23 @@ $steps = $steps ?? [];
         </p>
     </section>
 
+    <!-- Getting paid from the reminder, where Connect is configured. -->
+    <?php require __DIR__ . '/partials/payments-note.php'; ?>
+
     <!-- Closing -->
     <section class="mx-auto max-w-3xl px-4 pb-20">
         <div class="rounded-2xl border border-card-border bg-card p-8 sm:p-10">
             <h2 class="text-2xl font-semibold tracking-tight text-text-strong">
-                Join the waitlist
+                Start chasing
             </h2>
-            <p class="mt-3 leading-relaxed text-text-muted">
-                One email to confirm, then one when your place is ready. Nothing else.
-            </p>
-            <div id="waitlist" class="mt-6 max-w-lg scroll-mt-24">
+            <div class="mt-3">
+                <?php $foundingTone = 'line'; require __DIR__ . '/partials/founding-note.php'; ?>
+            </div>
+            <div class="mt-6 max-w-lg">
                 <?php
+                $formId = 'signup-form-how-it-works';
                 $source = 'how_it_works';
-                $landingPath = '/how-it-works';
-                require __DIR__ . '/partials/waitlist-form.php';
+                require __DIR__ . '/partials/signup-form.php';
                 ?>
             </div>
         </div>

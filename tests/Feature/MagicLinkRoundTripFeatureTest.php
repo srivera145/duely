@@ -32,7 +32,10 @@ class MagicLinkRoundTripFeatureTest extends TestCase
         $response = $this->get('/auth/magic?token=' . $token . '&email=' . $encodedEmail);
 
         self::assertSame(302, $response->status);
-        self::assertSame('/dashboard', $response->header('Location'));
+        // First arrival: a workspace is created and onboarding is next. The
+        // magic link and the OTP land in the same place because they run the
+        // same provisioning.
+        self::assertSame('/onboarding', $response->header('Location'));
         self::assertTrue(isset($_SESSION['user_id']) && (int) $_SESSION['user_id'] > 0);
     }
 }

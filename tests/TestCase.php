@@ -61,6 +61,7 @@ abstract class TestCase extends PhpUnitTestCase
 
         $this->truncateApplicationTables();
         $this->clearMailLog();
+        \Keel\App\Services\FoundingCounter::forget();
 
         $_ENV['MULTI_TENANCY_ENABLED'] = 'false';
         $_SERVER['MULTI_TENANCY_ENABLED'] = 'false';
@@ -422,7 +423,10 @@ abstract class TestCase extends PhpUnitTestCase
         // The founding slots are the cap itself, so they are released rather
         // than truncated — an empty table would mean nobody could ever claim
         // one, and every cohort test would pass for the wrong reason.
-        $connection->exec('UPDATE founding_slots SET tenant_id = NULL, claimed_at = NULL');
+        $connection->exec(
+            'UPDATE founding_slots
+             SET tenant_id = NULL, claimed_at = NULL, reserved_until = NULL, lapse_warning_sent_at = NULL'
+        );
 
         $connection->exec('SET FOREIGN_KEY_CHECKS=1');
     }

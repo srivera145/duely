@@ -5,6 +5,7 @@ namespace Keel\App\Controllers;
 use Keel\App\Services\Clock;
 use Keel\App\Services\MagicLinkService;
 use Keel\App\Services\OtpService;
+use Keel\App\Services\SignupService;
 use Keel\Core\Activity;
 use Keel\Core\Auth;
 use Keel\Core\Controller;
@@ -110,12 +111,40 @@ class AuthController extends Controller
         Activity::log('user.login');
     }
 
+    /**
+     * Where somebody lands after proving they own the address.
+     *
+     * This is also where a workspace comes into existence. Provisioning here
+     * rather than on a signup-only route means there is exactly one OTP path in
+     * the application: the signup form and the sign-in form post to the same
+     * two endpoints, and whichever one a stranger happens to use, they end up
+     * with an account.
+     *
+     * It also means the flows are indistinguishable from outside, which is the
+     * point of never saying "that email is already registered". A new address
+     * and a known one take the same route and get the same messages; the only
+     * difference is where they land, and that is a difference the person
+     * themselves already knows about.
+     */
     private function postLoginRedirect(array $user): string
     {
+        // Multi-tenant installs ask for the organization name up front, and
+        // that flow already exists.
         if ((bool) Env::get('MULTI_TENANCY_ENABLED', false) && empty($user['organization_id'])) {
             return '/onboarding/organization';
         }
 
-        return '/dashboard';
+        $signup = (new SignupService())->provision((int) $user['id']);
+
+        // Idempotent: a returning user already had one and falls straight
+        // through to their dashboard.
+        if (!$signup['created']) {
+            return '/dashboard';
+        }
+
+        // The session was minted before the workspace existed.
+        Session::put('organization_id', $signup['tenant_id']);
+
+        return '/onboarding';
     }
 }

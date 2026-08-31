@@ -70,6 +70,16 @@ class PlanService
     public const FOUNDING_SLOTS = 50;
 
     /**
+     * How long an unpaid founding hold lasts.
+     *
+     * The slot is claimed at signup, which is what the marketing copy promises
+     * -- "the first 50 to sign up" -- so the counter means what it says. The
+     * cost of that choice is that fifty people who never come back would consume
+     * the whole cohort, and the hold expiring is what pays for it.
+     */
+    public const FOUNDING_HOLD_DAYS = 30;
+
+    /**
      * The plans, and what each one allows.
      *
      * `null` means unlimited. Keeping the limits as data rather than as
@@ -372,14 +382,27 @@ class PlanService
 
             // The atomic bit. LIMIT 1 with an explicit order takes exactly one
             // free row under a lock; a loser of the race updates nothing.
+            //
+            // `reserved_until` is set here rather than by the caller because
+            // this method is the only place a slot is ever taken, and it is
+            // called from signup *and* from billing. A caller that forgot would
+            // create a slot nothing can ever reclaim.
+            //
+            // A workspace that pays keeps its slot regardless: the release job
+            // checks for an active subscription, so this date stops mattering
+            // the moment they subscribe.
             $claim = $connection->prepare(
                 'UPDATE founding_slots
-                 SET tenant_id = ?, claimed_at = ?
+                 SET tenant_id = ?, claimed_at = ?, reserved_until = ?
                  WHERE tenant_id IS NULL
                  ORDER BY slot_number ASC
                  LIMIT 1'
             );
-            $claim->execute([$tenantId, Clock::toDatabase($now)]);
+            $claim->execute([
+                $tenantId,
+                Clock::toDatabase($now),
+                Clock::toDatabase($now->modify('+' . self::FOUNDING_HOLD_DAYS . ' days')),
+            ]);
 
             if ($claim->rowCount() === 0) {
                 return [
@@ -397,6 +420,12 @@ class PlanService
                 'UPDATE organizations SET is_founding = 1, founding_slot = ? WHERE id = ?'
             );
             $mark->execute([$slot, $tenantId]);
+
+            // The marketing counter caches for a minute. Dropping it here means
+            // the number moves when a place is taken rather than a minute
+            // afterwards -- which matters most in the last few, where a stale
+            // "3 left" is the version somebody would notice.
+            FoundingCounter::forget();
 
             return ['claimed' => true, 'slot' => $slot, 'reason' => null];
         });

@@ -35,7 +35,7 @@ $steps = [
     </div>
 
     <p class="mt-4 text-3xl font-semibold tracking-tight text-text-strong">$2,400.00</p>
-    <p class="mt-1 text-sm text-text-muted">Due 6 August &middot; Net 14</p>
+    <p class="mt-1 text-sm text-text-muted">Due August 6 &middot; Net 14</p>
 
     <!-- The escalation rail -->
     <div class="relative mt-7">
@@ -85,7 +85,7 @@ $steps = [
             Invoice INV&#8209;2041 &mdash; still showing as open
         </p>
         <p class="mt-1.5 text-[13px] leading-relaxed text-text-muted">
-            Hi Ellie &mdash; following up on INV&#8209;2041 for $2,400, which was due on 6 August.
+            Hi Ellie &mdash; following up on INV&#8209;2041 for $2,400, which was due on August 6.
             Could you let me know when it&rsquo;s likely to go out? Happy to resend it if that helps.
         </p>
     </div>

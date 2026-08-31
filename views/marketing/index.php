@@ -24,17 +24,9 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
     <section class="mx-auto max-w-6xl px-4 pb-16 pt-12 sm:pt-16 lg:pt-24">
         <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
-                <?php if ($founding !== null && $founding['remaining'] > 0): ?>
-                <?php
-                    $foundingLabel = $founding['remaining'] === $founding['total']
-                        ? $founding['total'] . ' founding places left'
-                        : $founding['remaining'] . ' of ' . $founding['total'] . ' founding places left';
-                    ?>
-                <p class="mb-5 inline-flex items-center gap-2 rounded-full border border-brand/40 bg-brand/10 px-3 py-1 text-sm text-brand">
-                    <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden="true"></span>
-                    <?= $e($foundingLabel) ?>
-                </p>
-                <?php endif; ?>
+                <div class="mb-5">
+                    <?php $foundingTone = 'badge'; require __DIR__ . '/partials/founding-note.php'; ?>
+                </div>
 
                 <h1 class="text-balance text-4xl font-semibold leading-[1.1] tracking-tight text-text-strong sm:text-5xl lg:text-6xl">
                     Get paid without writing the awkward follow-up.
@@ -46,16 +38,29 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
                     schedule &mdash; and stops the second a client replies or pays.
                 </p>
 
-                <div id="waitlist" class="mt-8 max-w-lg scroll-mt-24">
-                    <?php
-                    $source = 'landing_hero';
-                    $landingPath = '/';
-                    require __DIR__ . '/partials/waitlist-form.php';
-                    ?>
+                <div class="mt-8 flex flex-wrap items-center gap-4">
+                    <a href="/signup"
+                       class="rounded-lg bg-brand px-6 py-3 text-base font-semibold text-brand-contrast transition hover:bg-brand-hover">
+                        Create your account
+                    </a>
+                    <a href="/how-it-works"
+                       class="text-sm text-text-muted underline decoration-card-border underline-offset-4 hover:text-text-strong">
+                        See how it works
+                    </a>
                 </div>
 
                 <p class="mt-6 text-sm text-text-muted">
+                    <?php if ($founding !== null && $founding['remaining'] > 0): ?>
+                    <!--
+                        The counter is claimed on signup, not on payment, so this
+                        sentence is literally true. Saying "the first 50 to sign
+                        up" while counting payments would be a nicer-sounding
+                        number attached to a different fact.
+                    -->
+                    Signing up takes your founding place &middot; No card, no password &middot;
+                    <?php else: ?>
                     No card to start &middot; Free for three invoices at a time &middot;
+                    <?php endif; ?>
                     <a href="/pricing" class="underline decoration-card-border underline-offset-4 hover:text-text-strong">See pricing</a>
                 </p>
             </div>
@@ -175,6 +180,15 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
         </div>
     </section>
 
+    <!--
+        Getting paid from the reminder. Secondary on purpose: the product is
+        still "get paid without writing the awkward follow-up", and this is an
+        add-on to that rather than a second headline.
+
+        Renders only where Stripe Connect is configured.
+    -->
+    <?php require __DIR__ . '/partials/payments-note.php'; ?>
+
     <!-- Questions -->
     <section class="mx-auto max-w-3xl px-4 py-20">
         <h2 class="text-3xl font-semibold tracking-tight text-text-strong sm:text-4xl">
@@ -197,22 +211,15 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
             <h2 class="text-2xl font-semibold tracking-tight text-text-strong sm:text-3xl">
                 Stop writing the awkward one.
             </h2>
-            <p class="mt-3 leading-relaxed text-text-muted">
-                <?php if ($founding !== null && $founding['remaining'] > 0): ?>
-                The first <?= (int) $founding['total'] ?> accounts keep today's price for as long
-                as they stay, on whichever plan they are on, whatever we charge later.
-                <?= (int) $founding['remaining'] ?> places left.
-                <?php else: ?>
-                Join the waitlist and we will email you when your place is ready.
-                <?php endif; ?>
-            </p>
+            <div class="mt-3">
+                <?php $foundingTone = 'line'; require __DIR__ . '/partials/founding-note.php'; ?>
+            </div>
 
             <div class="mt-6 max-w-lg">
                 <?php
+                $formId = 'signup-form-footer';
                 $source = 'landing_footer';
-                $landingPath = '/';
-                $formId = 'waitlist-form-footer';
-                require __DIR__ . '/partials/waitlist-form.php';
+                require __DIR__ . '/partials/signup-form.php';
                 ?>
             </div>
         </div>

@@ -67,17 +67,14 @@ $plans = [
             Start free with no card. Upgrade when three invoices at a time stops being enough.
         </p>
 
-        <?php if ($founding !== null && $founding['remaining'] > 0): ?>
-        <?php
-            $foundingLabel = $founding['remaining'] === $founding['total']
-                ? $founding['total'] . ' founding places left'
-                : $founding['remaining'] . ' of ' . $founding['total'] . ' founding places left';
-        ?>
-        <p class="mx-auto mt-8 inline-flex max-w-full items-center gap-2 rounded-full border border-brand/40 bg-brand/10 px-4 py-2 text-left text-sm text-brand">
-            <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" aria-hidden="true"></span>
-            <span><?= $e($foundingLabel) ?> &mdash; they keep today's price for good, on whichever plan they are on</span>
-        </p>
-        <?php endif; ?>
+        <!--
+            The shared badge. This page used to compose its own sentence, which
+            is how it ended up describing a different offer from the homepage --
+            and from what the code actually does.
+        -->
+        <div class="mt-8 flex justify-center">
+            <?php $foundingTone = 'badge'; require __DIR__ . '/partials/founding-note.php'; ?>
+        </div>
     </section>
 
     <section class="mx-auto max-w-6xl px-4 pb-16">
@@ -116,11 +113,11 @@ $plans = [
                     <?php endforeach; ?>
                 </ul>
 
-                <a href="/#waitlist"
+                <a href="/signup"
                    class="mt-8 block rounded-lg px-4 py-3 text-center font-semibold transition <?= $plan['featured']
                        ? 'bg-brand text-brand-contrast hover:bg-brand-hover'
                        : 'border border-card-border text-text-strong hover:bg-surface-hover' ?>">
-                    Join the waitlist
+                    Start free
                 </a>
             </article>
             <?php endforeach; ?>
@@ -135,11 +132,16 @@ $plans = [
             <dl class="mt-8 space-y-7">
                 <?php
                 $notes = [
-                    'What is a founding place?' => 'The first fifty accounts that start paying keep '
-                        . 'today\'s price for as long as they stay subscribed, whatever the price '
-                        . 'becomes later — and that holds on whichever plan they are on, so moving '
-                        . 'up to Studio never costs you the rate you were given. There are fifty '
-                        . 'and there will not be fifty-one.',
+                    // Was "the first fifty accounts that start paying", which
+                    // described a different offer from every other page — and
+                    // from what the code does. The place is taken at signup.
+                    'What is a founding place?' => 'One of fifty. Signing up takes one and holds it '
+                        . 'for 30 days; start a paid plan in that time and you keep today\'s price '
+                        . 'for as long as you stay subscribed, whatever the price becomes later. If '
+                        . 'you do not, the place goes back for somebody else and standard pricing '
+                        . 'applies — we email you a week before that happens. The rate holds on '
+                        . 'whichever plan you are on, so moving up to Studio never costs you the '
+                        . 'price you were given. There are fifty and there will not be fifty-one.',
                     'What happens if I downgrade?' => 'Nothing is deleted. If you drop below the '
                         . 'limit, Duely pauses the newest chases and tells you exactly which ones. '
                         . 'The oldest keep running — they are the ones closest to being paid.',
@@ -164,17 +166,22 @@ $plans = [
         </div>
     </section>
 
+    <!-- What collecting payment costs, where Connect is configured. -->
+    <div class="mx-auto max-w-3xl px-4 pb-4">
+        <?php $paymentsTone = 'compact'; require __DIR__ . '/partials/payments-note.php'; ?>
+    </div>
+
     <section class="mx-auto max-w-3xl px-4 py-16">
         <div class="rounded-2xl border border-card-border bg-card p-8 sm:p-10">
-            <h2 class="text-2xl font-semibold tracking-tight text-text-strong">Join the waitlist</h2>
-            <p class="mt-3 leading-relaxed text-text-muted">
-                We will email you once to confirm, then when your place is ready.
-            </p>
-            <div id="waitlist" class="mt-6 max-w-lg scroll-mt-24">
+            <h2 class="text-2xl font-semibold tracking-tight text-text-strong">Start chasing</h2>
+            <div class="mt-3">
+                <?php $foundingTone = 'line'; require __DIR__ . '/partials/founding-note.php'; ?>
+            </div>
+            <div class="mt-6 max-w-lg">
                 <?php
+                $formId = 'signup-form-pricing';
                 $source = 'pricing';
-                $landingPath = '/pricing';
-                require __DIR__ . '/partials/waitlist-form.php';
+                require __DIR__ . '/partials/signup-form.php';
                 ?>
             </div>
         </div>
