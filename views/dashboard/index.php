@@ -24,6 +24,7 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php require __DIR__ . '/../partials/nav-bar.php'; ?>
     <div class="mx-auto max-w-7xl px-4 py-10">
 
         <?php
@@ -144,7 +145,9 @@ $averageDays = $cards['average_days_to_payment'] ?? null;
                             </a>
                             <?php endif; ?>
                         </p>
-                        <span class="text-xs text-text-muted"><?= $e($event['received_at']) ?></span>
+                        <span class="text-xs text-text-muted"><?= $e(
+                            \Keel\App\Services\Dates::withTime($event['received_at'], $timezone, 'M j, g:i A')
+                        ) ?></span>
                     </div>
                     <?php if (!empty($event['snippet'])): ?>
                     <p class="mt-2 text-sm text-text-muted">"<?= $e($event['snippet']) ?>"</p>

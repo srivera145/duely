@@ -9,6 +9,7 @@ $totalPages = $totalPages ?? 1;
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php require __DIR__ . '/../partials/nav-bar.php'; ?>
     <div class="mx-auto max-w-6xl px-4 py-10">
         <?php
         $pageActions = '<a href="/settings/organization" class="text-sm text-text-muted hover:text-text-strong">Organization settings</a>';

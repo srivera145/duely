@@ -46,7 +46,7 @@ class TemplateRenderer
             'invoice_number' => ['label' => 'Invoice number', 'example' => 'INV-1042'],
             'amount' => ['label' => 'Amount', 'example' => '$3,200.00'],
             'currency' => ['label' => 'Currency', 'example' => 'USD'],
-            'due_date' => ['label' => 'Due date', 'example' => '5 August 2026'],
+            'due_date' => ['label' => 'Due date', 'example' => 'August 5, 2026'],
             'days_overdue' => ['label' => 'Days overdue', 'example' => '18'],
             'invoice_url' => ['label' => 'Payment link', 'example' => 'https://pay.example.com/inv-1042'],
             'sender_name' => ['label' => 'Your name', 'example' => 'Ada Lovelace'],
@@ -184,7 +184,7 @@ class TemplateRenderer
             'invoice_number' => 'INV-1042',
             'amount' => '$3,200.00',
             'currency' => 'USD',
-            'due_date' => '5 August 2026',
+            'due_date' => 'August 5, 2026',
             'days_overdue' => '18',
             'invoice_url' => 'https://pay.example.com/inv-1042',
             'sender_name' => $senderName,
@@ -402,7 +402,10 @@ class TemplateRenderer
     }
 
     /**
-     * "2026-08-05" reads better as "5 August 2026" in a sentence.
+     * "2026-08-05" reads better as "August 5, 2026" in a sentence.
+     *
+     * This is the one a client actually sees: {{due_date}} goes out in every
+     * reminder, so the format here is the format the product is judged on.
      */
     private static function friendlyDate(string $date): string
     {
@@ -412,6 +415,6 @@ class TemplateRenderer
 
         $parsed = DateParser::parse($date);
 
-        return $parsed === null ? $date : $parsed->format('j F Y');
+        return $parsed === null ? $date : Dates::long($parsed);
     }
 }

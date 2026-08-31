@@ -62,7 +62,7 @@ class RelativeTime
             $zone = Clock::utc();
         }
 
-        return $moment->setTimezone($zone)->format('D j M, H:i T');
+        return $moment->setTimezone($zone)->format('D, M j, g:i A T');
     }
 
     /**

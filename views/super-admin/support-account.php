@@ -134,7 +134,9 @@ require __DIR__ . '/_layout.php';
                 <tbody>
                     <?php foreach ($access as $entry): ?>
                     <tr class="border-b border-card-border">
-                        <td class="py-2 pr-3 font-mono text-xs text-text-muted"><?= $e($entry['created_at']) ?></td>
+                        <td class="py-2 pr-3 font-mono text-xs text-text-muted"><?= $e(
+                            \Keel\App\Services\Dates::shortWithTime($entry['created_at'], $timezone ?? 'UTC')
+                        ) ?></td>
                         <td class="py-2 pr-3 text-text-muted"><?= $e($entry['super_admin_email']) ?></td>
                         <td class="py-2 pr-3 font-mono text-xs text-text"><?= $e($entry['action']) ?></td>
                         <td class="py-2 text-text-muted"><?= $e($entry['reason'] ?? '') ?></td>

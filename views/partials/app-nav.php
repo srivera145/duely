@@ -37,10 +37,11 @@ $pageSubtitle = $pageSubtitle ?? '';
 $pageActions = $pageActions ?? '';
 $showNav = $showNav ?? true;
 ?>
-<?php if ($showNav): ?>
-<?php require __DIR__ . '/nav-bar.php'; ?>
-<?php endif; ?>
-
+<?php
+// The nav bar is rendered at body level by each view, above the content column,
+// so that its width is its own rather than the page's. This partial is the
+// title row only.
+?>
 <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
     <div>
         <?php if (!$showNav): ?>

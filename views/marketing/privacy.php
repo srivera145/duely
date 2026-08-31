@@ -11,7 +11,7 @@
  */
 $updatedOn = $updatedOn ?? '2026-08-24';
 $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-$updatedLabel = date('j F Y', strtotime($updatedOn));
+$updatedLabel = date(\Keel\App\Services\Dates::LONG, strtotime($updatedOn));
 ?>
 <!DOCTYPE html>
 <html lang="en"<?= \Keel\Core\Theme::htmlAttribute() ?>>

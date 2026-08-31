@@ -18,17 +18,15 @@ $e = static fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES,
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php
+// The bar at body level, like every other signed-in page, so its width is its
+// own rather than this page's centred column. $navCompact drops its logo: the
+// page already has a large centred lockup below and two would be one too many.
+$navCompact = true;
+require __DIR__ . '/../partials/nav-bar.php';
+?>
     <div class="mx-auto max-w-3xl px-4 py-10" id="onboarding">
 
-        <!--
-            The bar alone, not the full header partial: this page keeps its own
-            centred lockup and app-nav would render a second one. $navCompact
-            drops the bar's logo so only the centred one remains.
-        -->
-        <?php
-        $navCompact = true;
-        require __DIR__ . '/../partials/nav-bar.php';
-        ?>
 
         <div class="mb-8 text-center">
             <div class="mb-6 flex justify-center">

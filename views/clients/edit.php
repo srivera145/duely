@@ -15,6 +15,7 @@ $money = static fn (int $cents, string $currency): string => \Keel\App\Services\
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php require __DIR__ . '/../partials/nav-bar.php'; ?>
     <div class="mx-auto max-w-3xl px-4 py-10">
 
         <?php
@@ -194,7 +195,7 @@ $money = static fn (int $cents, string $currency): string => \Keel\App\Services\
                             <td class="text-right font-mono text-text">
                                 <?= $e($money((int) $invoice['amount_cents'], (string) $invoice['currency'])) ?>
                             </td>
-                            <td class="text-text-muted"><?= $e($invoice['due_date']) ?></td>
+                            <td class="text-text-muted"><?= $e(\Keel\App\Services\Dates::short($invoice['due_date'])) ?></td>
                             <td class="text-text-muted"><?= $e(ucfirst((string) $invoice['status'])) ?></td>
                         </tr>
                         <?php endforeach; ?>

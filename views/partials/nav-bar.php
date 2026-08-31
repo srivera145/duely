@@ -93,8 +93,20 @@ $navLinkClass = static function (bool $active): string {
         . ' focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand';
 };
 ?>
-<div class="mb-6 border-b border-card-border pb-4 md:pr-12">
-    <div class="flex items-center justify-between gap-4">
+<!--
+    Full width, with its own inner container.
+
+    The bar used to render inside each page's content column, and those range
+    from max-w-2xl to max-w-7xl -- so the same global navigation had 467px on the
+    Stripe choice screen and 1248px on the dashboard, and wrapped "Sign out" onto
+    a second line on the narrow ones. A navigation that changes shape depending
+    on which page it is sitting in is not one navigation.
+
+    It is rendered at body level now, above the content column, so its width is
+    its own and every page gets the same bar.
+-->
+<div class="mb-6 border-b border-card-border">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pt-6 pb-4">
         <?php if (!$navCompact): ?>
         <?php
         $variant = 'mark';
@@ -118,12 +130,41 @@ $navLinkClass = static function (bool $active): string {
 
             <span class="mx-2 h-4 w-px bg-card-border" aria-hidden="true"></span>
 
-            <?php foreach ($navSections['settings'] as $label => $href): ?>
-            <?php $active = $navIsActive($href); ?>
-            <a href="<?= $href ?>"
-               class="<?= $navLinkClass($active) ?>"
-               <?= $active ? 'aria-current="page"' : '' ?>><?= $label ?></a>
+            <!--
+                Settings collapse into a disclosure rather than sitting inline.
+
+                The bar renders inside each page's content column, and those
+                range from max-w-3xl to max-w-7xl -- so a bar wide enough for the
+                dashboard wrapped its last item on the settings pages, and "Sign
+                out" ended up on a second line. Three inline settings links are
+                what pushed it over. One summary is ~135px narrower, which fits
+                the narrowest column with room to spare, and it keeps fitting as
+                more settings are added.
+
+                A <details>, so it opens with no JavaScript. Absolutely
+                positioned, so opening it overlays rather than reflowing the bar.
+            -->
+            <?php $settingsActive = false; ?>
+            <?php foreach ($navSections['settings'] as $href): ?>
+            <?php $settingsActive = $settingsActive || $navIsActive($href); ?>
             <?php endforeach; ?>
+
+            <details class="relative">
+                <summary class="flex cursor-pointer list-none items-center gap-1 <?= $navLinkClass($settingsActive) ?>">
+                    Settings
+                    <span aria-hidden="true" class="text-[10px] leading-none">&#9660;</span>
+                </summary>
+
+                <div class="absolute right-0 top-full z-20 mt-2 flex w-44 flex-col items-start gap-1
+                            rounded-lg border border-card-border bg-card p-2 shadow-lg">
+                    <?php foreach ($navSections['settings'] as $label => $href): ?>
+                    <?php $active = $navIsActive($href); ?>
+                    <a href="<?= $href ?>"
+                       class="w-full <?= $navLinkClass($active) ?>"
+                       <?= $active ? 'aria-current="page"' : '' ?>><?= $label ?></a>
+                    <?php endforeach; ?>
+                </div>
+            </details>
 
             <?php if ($navIsOperator): ?>
             <span class="mx-2 h-4 w-px bg-card-border" aria-hidden="true"></span>
@@ -138,6 +179,18 @@ $navLinkClass = static function (bool $active): string {
             <span class="mx-2 h-4 w-px bg-card-border" aria-hidden="true"></span>
 
             <?php require __DIR__ . '/sign-out.php'; ?>
+
+            <!--
+                In the bar, not floating over it. theme-toggle.js appends a
+                position:fixed fallback only when the page has no
+                [data-theme-toggle] -- and that fallback sat in the top-right
+                corner, on top of whatever the header's last item happened to be.
+            -->
+            <button type="button" data-theme-toggle
+                    class="theme-toggle-button ml-2 h-8 w-8 shrink-0"
+                    aria-label="Switch between light and dark">
+                <span data-theme-toggle-icon aria-hidden="true"></span>
+            </button>
         </nav>
 
         <!--

@@ -65,7 +65,7 @@ require __DIR__ . '/_layout.php';
                                 </td>
                                 <td class="p-3 text-text-muted"><?= $e($organization['plan'] ?? '') ?></td>
                                 <td class="p-3 font-mono text-xs text-text-muted">
-                                    <?= $e(substr((string) ($organization['created_at'] ?? ''), 0, 10)) ?>
+                                    <?= $e(\Keel\App\Services\Dates::short($organization['created_at'] ?? null)) ?>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
@@ -102,7 +102,9 @@ require __DIR__ . '/_layout.php';
                         <dt class="text-text-muted">Plan</dt>
                         <dd class="text-text-strong"><?= $e($selected['plan'] ?? '') ?></dd>
                         <dt class="text-text-muted">Trial ends</dt>
-                        <dd class="text-text-strong"><?= $e($selected['trial_ends_at'] ?? '—') ?></dd>
+                        <dd class="text-text-strong"><?= $e(
+                            \Keel\App\Services\Dates::medium($selected['trial_ends_at'] ?? null) ?: '—'
+                        ) ?></dd>
                         <dt class="text-text-muted">Founding slot</dt>
                         <dd class="text-text-strong"><?= $e($selected['founding_slot'] ?? '—') ?></dd>
                         <dt class="text-text-muted">Stripe account</dt>

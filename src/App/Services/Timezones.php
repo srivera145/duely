@@ -109,7 +109,7 @@ class Timezones
     public static function render(
         ?DateTimeImmutable $moment,
         string $timezone,
-        string $format = 'Y-m-d H:i'
+        string $format = Dates::MEDIUM_WITH_TIME
     ): ?string {
         return $moment?->setTimezone(self::zone($timezone))->format($format);
     }
@@ -120,7 +120,7 @@ class Timezones
     public static function renderStored(
         ?string $stored,
         string $timezone,
-        string $format = 'Y-m-d H:i'
+        string $format = Dates::MEDIUM_WITH_TIME
     ): ?string {
         return self::render(Clock::fromDatabase($stored), $timezone, $format);
     }
@@ -142,7 +142,7 @@ class Timezones
         $now ??= Clock::now();
         $local = $now->setTimezone(new DateTimeZone($name));
 
-        return $name . ' — ' . $local->format('T, H:i');
+        return $name . ' — ' . $local->format('T, g:i A');
     }
 
     /**
@@ -186,6 +186,6 @@ class Timezones
             return null;
         }
 
-        return ($now ?? Clock::now())->setTimezone(new DateTimeZone($name))->format('H:i');
+        return ($now ?? Clock::now())->setTimezone(new DateTimeZone($name))->format('g:i A');
     }
 }

@@ -179,14 +179,24 @@ class AppNavigationFeatureTest extends TestCase
     {
         $this->signIn();
 
-        // Two lit links would mean the prefix matching is too loose. The count
-        // is two rather than one because the bar renders twice — once for
-        // desktop, once inside the mobile disclosure — and CSS shows one.
-        foreach (['/dashboard', '/invoices', '/clients', '/sequences', '/settings/email', '/settings/payments'] as $path) {
+        // One *destination* lit, however many times the bar is rendered. The bar
+        // appears twice — desktop and the mobile disclosure — so counting
+        // occurrences would be counting renders, not correctness. Distinct
+        // hrefs is the thing: two would mean the prefix matching is too loose.
+        foreach ([
+            '/dashboard', '/invoices', '/clients', '/sequences',
+            '/settings/email', '/settings/payments', '/settings/timezone',
+        ] as $path) {
+            preg_match_all(
+                '/<a href="([^"]+)"[^>]*aria-current="page"/',
+                $this->get($path)->body,
+                $matches
+            );
+
             self::assertSame(
-                2,
-                substr_count($this->get($path)->body, 'aria-current="page"'),
-                $path . ' lit the wrong number of nav links.'
+                [$path],
+                array_values(array_unique($matches[1])),
+                $path . ' lit the wrong nav link.'
             );
         }
     }

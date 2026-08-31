@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Keel\App\Services\Clock;
 use Keel\App\Services\WaitlistService;
 use Keel\Core\Database;
 use Tests\TestCase;
@@ -33,7 +34,14 @@ class MarketingSiteFeatureTest extends TestCase
         parent::setUp();
 
         $this->waitlist = new WaitlistService();
-        $this->now = new DateTimeImmutable('2026-08-24 09:00:00', new DateTimeZone('UTC'));
+        // Relative to the real clock, not a fixed date.
+        //
+        // These tests mint a token at $this->now and then confirm it over HTTP,
+        // where WaitlistService reads Clock::now(). A hardcoded date therefore
+        // works only until the calendar passes it by more than CONFIRM_TTL_DAYS
+        // -- and on 2026-08-31 the fixed 2026-08-24 crossed that line and the
+        // suite started failing on its own, with no code change.
+        $this->now = Clock::now()->modify('-1 hour');
     }
 
     // ------------------------------------------------------------ the pages

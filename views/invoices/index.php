@@ -78,6 +78,7 @@ $queryWith = static function (array $overrides) use ($filters): string {
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php require __DIR__ . '/../partials/nav-bar.php'; ?>
     <div class="mx-auto max-w-7xl px-4 py-10">
 
         <?php
@@ -201,7 +202,7 @@ $queryWith = static function (array $overrides) use ($filters): string {
                         <td class="text-right font-mono text-text">
                             <?= $e($money((int) $row['amount_cents'], (string) $row['currency'])) ?>
                         </td>
-                        <td class="whitespace-nowrap text-text-muted"><?= $e($row['due_date']) ?></td>
+                        <td class="whitespace-nowrap text-text-muted"><?= $e(\Keel\App\Services\Dates::short($row['due_date'])) ?></td>
                         <td class="text-right whitespace-nowrap">
                             <?php if ($row['status'] !== 'open'): ?>
                             <span class="text-text-muted">—</span>

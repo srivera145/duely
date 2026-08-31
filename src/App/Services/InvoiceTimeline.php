@@ -123,7 +123,7 @@ class InvoiceTimeline
             'at' => (string) $invoice['created_at'],
             'title' => 'Invoice ' . $invoice['number'] . ' added',
             'detail' => MoneyParser::format((int) $invoice['amount_cents'], (string) $invoice['currency'])
-                . ' due ' . $invoice['due_date'],
+                . ' due ' . Dates::long($invoice['due_date']),
         ];
 
         if ($chase !== null && !empty($chase['started_at'])) {

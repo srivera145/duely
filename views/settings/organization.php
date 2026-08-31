@@ -4,6 +4,7 @@
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php require __DIR__ . '/../partials/nav-bar.php'; ?>
     <div class="mx-auto max-w-4xl px-4 py-10">
         <?php
         $pageEyebrow = 'Settings';

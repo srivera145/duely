@@ -37,6 +37,7 @@ $eventStyles = [
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php require __DIR__ . '/../partials/nav-bar.php'; ?>
     <div class="mx-auto max-w-4xl px-4 py-10" data-invoice-id="<?= (int) $invoice['id'] ?>">
 
         <?php
@@ -45,7 +46,7 @@ $eventStyles = [
                     <?= $e($money((int) $invoice['amount_cents'], (string) $invoice['currency'])) ?>
                     · <?= $e($invoice['client_name']) ?>
                     &lt;<?= $e($invoice['client_email']) ?>&gt;
-                    · due <?= $e($invoice['due_date']) ?>
+                    · due <?= $e(\Keel\App\Services\Dates::long($invoice['due_date'])) ?>
                 </p>
                 <?php if ($isOpen && $daysOverdue > 0): ?>
                 <p class="mt-1 text-sm <?= \Keel\App\Services\ToneRamp::text(\Keel\App\Services\ToneRamp::forDaysOverdue((int) $daysOverdue)) ?>">

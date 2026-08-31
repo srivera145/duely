@@ -8,6 +8,7 @@ $pendingInvites = $pendingInvites ?? [];
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php require __DIR__ . '/../partials/nav-bar.php'; ?>
     <div class="mx-auto max-w-5xl px-4 py-10">
         <?php
         $pageActions = '<a href="/settings/organization" class="text-sm text-text-muted hover:text-text-strong">Organization settings</a>';
@@ -115,7 +116,9 @@ $pendingInvites = $pendingInvites ?? [];
                                 <tr>
                                     <td class="font-medium text-text-strong"><?= htmlspecialchars((string) $invite['email']) ?></td>
                                     <td class="uppercase tracking-wide"><?= htmlspecialchars((string) $invite['role']) ?></td>
-                                    <td>Expires <?= htmlspecialchars((string) $invite['expires_at']) ?></td>
+                                    <td>Expires <?= htmlspecialchars(
+                                        \Keel\App\Services\Dates::medium($invite['expires_at'])
+                                    ) ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>

@@ -169,8 +169,13 @@ class DashboardFeatureTest extends TestCase
 
     public function testTimesCanBeRenderedInTheViewerTimezone(): void
     {
-        // 11:00 UTC is 20:00 in Tokyo.
-        self::assertStringContainsString('20:00', (string) RelativeTime::inTimezone($this->now, 'Asia/Tokyo'));
+        // 11:00 UTC is 8pm in Tokyo.
+        $rendered = (string) RelativeTime::inTimezone($this->now, 'Asia/Tokyo');
+
+        self::assertStringContainsString('8:00 PM', $rendered);
+        self::assertStringContainsString('JST', $rendered);
+        // Month before day, like everywhere else Duely writes a date.
+        self::assertMatchesRegularExpression('/[A-Z][a-z]{2} \d{1,2}/', $rendered);
         self::assertNotNull(RelativeTime::inTimezone($this->now, 'Not/AZone'), 'a bad timezone must not throw');
     }
 

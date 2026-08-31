@@ -231,7 +231,7 @@ class SequenceTemplateFeatureTest extends TestCase
 
         self::assertSame('Dana', $context['client_first_name']);
         self::assertSame('$3,200.50', $context['amount']);
-        self::assertSame('5 August 2026', $context['due_date']);
+        self::assertSame('August 5, 2026', $context['due_date']);
         self::assertSame('18', $context['days_overdue']);
         self::assertSame('Ada Lovelace', $context['sender_name']);
     }

@@ -5,6 +5,7 @@ namespace Keel\App\Controllers;
 use Keel\App\Services\ColumnMapper;
 use Keel\App\Services\CsvImporter;
 use Keel\App\Services\DateParser;
+use Keel\App\Services\Dates;
 use Keel\App\Services\ImportStaging;
 use Keel\App\Services\MoneyParser;
 use Keel\App\Services\TenantContext;
@@ -292,7 +293,7 @@ class ImportController extends Controller
             'client_name' => $record['client_name'],
             'client_email' => $record['client_email'],
             'amount_formatted' => MoneyParser::format($record['amount_cents'], $record['currency']),
-            'due_date' => $record['due_date'],
+            'due_date' => Dates::short($record['due_date']),
             'status' => $record['status'],
         ];
     }

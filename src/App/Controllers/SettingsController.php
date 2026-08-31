@@ -65,7 +65,7 @@ class SettingsController extends Controller
             'title' => 'Timezone - Duely',
             'current' => $current,
             'timezones' => Timezones::catalogue(),
-            'nowLocal' => Timezones::render(Clock::now(), $current, 'l j F, H:i'),
+            'nowLocal' => Timezones::render(Clock::now(), $current, 'l, F j, g:i A'),
             'nowUtc' => Clock::now()->format('H:i'),
             'clientsOnDefault' => Client::countOnTimezone($tenantId, Timezones::DEFAULT),
             'notice' => $request->query['notice'] ?? null,

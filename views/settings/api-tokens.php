@@ -9,6 +9,7 @@ $error = $error ?? null;
 <?php require __DIR__ . '/../partials/head.php'; ?>
 </head>
 <body class="min-h-screen bg-surface text-text">
+<?php require __DIR__ . '/../partials/nav-bar.php'; ?>
     <div class="mx-auto max-w-5xl px-4 py-10">
         <?php
         $pageEyebrow = 'Developer access';
@@ -63,7 +64,9 @@ $error = $error ?? null;
                         <td class="font-medium text-text-strong"><?= htmlspecialchars((string) $token['name']) ?></td>
                         <td class="text-xs"><?= htmlspecialchars((string) $token['abilities']) ?></td>
                         <td><?= htmlspecialchars((string) ($token['last_used_at'] ?? 'Never')) ?></td>
-                        <td><?= htmlspecialchars((string) ($token['expires_at'] ?? 'Never')) ?></td>
+                        <td><?= htmlspecialchars(
+                            \Keel\App\Services\Dates::medium($token['expires_at'] ?? null) ?: 'Never'
+                        ) ?></td>
                         <td class="text-right">
                             <button
                                 type="button"
